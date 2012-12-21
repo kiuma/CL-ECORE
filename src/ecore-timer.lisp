@@ -48,19 +48,19 @@
 (defgeneric timer-reset (etimer)
   (:documentation "Reset a timer to its full interval This doesn't affect the interval of a timer
 
-- TIMER a timer instance"))
+- ETIMER a timer instance"))
 
 (defgeneric timer-del (etimer)
   (:documentation "Reset a timer to its full interval This doesn't affect the interval of a timer
 
-- TIMER a timer instance"))
+- ETIMER a timer instance"))
 
 (defgeneric timer-delay (etimer delay)
   (:documentation "Add some delay for the next occurrence of a timer.
 
 This doesn't affect the interval of a timer.
 
-- TIMER a timer instance
+- ETIMER a timer instance
 - DELAY The delay to add to the next iteration."))
 
 (defgeneric timer-freeze (etimer)
@@ -68,7 +68,7 @@ This doesn't affect the interval of a timer.
 
 The timer callback won't be called while the timer is paused. The remaining time until the timer expires will be saved, so the timer can be resumed with that same remaining time to expire, instead of expiring instantly.
 
-- TIMER a timer instance"))
+- ETIMER a timer instance"))
 
 (defgeneric timer-interval (etimer)
   (:documentation "Get the interval the timer ticks on."))
@@ -78,20 +78,20 @@ The timer callback won't be called while the timer is paused. The remaining time
 
 If set during a timer call, this will affect the next interval.
 
-- TIMER a timer instance
+- ETIMER a timer instance
 - INTERVAL the interval in seconds"))
 
 (defgeneric timer-pending (etimer)
   (:documentation "Gets the pending time.
 
-- TIMER a timer instance"))
+- ETIMER a timer instance"))
 
 (defgeneric timer-thaw (etimer)
   (:documentation "Resumes a frozen (paused) timer.
 
 The timer will be resumed from its previous relative position in time. That means, if it had X seconds remaining until expire when it was paused, it will be started now with those same X seconds remaining to expire again. But notice that the interval time won't be touched by this call or by TIMER_FREEZE.
 
-- TIMER a timer instance"))
+- ETIMER a timer instance"))
 
 
 (defcfun ("ecore_timer_add" f-ecore-timer-add) :pointer
@@ -228,7 +228,7 @@ Example: We have 2 timers, one that expires in a 2.0s and another that expires i
 - TIMEOUT timeout in seconds.
 - LOOP-P when true, the next timeout is relative to the end of the current timer- BODY what will be called on timeout
 
-Returns a TIMER instance"
+Returns a ETIMER instance"
   
   (let ((g-timeout (gensym))
 	(g-loop-p (gensym))
