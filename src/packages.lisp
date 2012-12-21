@@ -36,7 +36,7 @@
 	   #:ecore-loop-quit
 	   #:ecore-error
 	   ;; ecore-timer 
-	   #:timer
+	   #:etimer
 	   #:last-iteration
 	   #:timer-loop-p
 	   #:timer-interval
@@ -47,6 +47,6 @@
 	   #:timer-reset
 	   #:timer-del
 	   #:timer-delay
-	   #:make-timer
+	   #:make-etimer
 
 ))

@@ -29,7 +29,7 @@
 
 (in-package :ecore)
 
-(defclass timer () 
+(defclass etimer () 
   ((pointer :initarg :pointer)
    (timeout :initarg :timeout)
    (job :initarg :job
@@ -42,20 +42,20 @@
   ()
   (:documentation "Inside a callback timer function, signal this condition to termiate the timer gracefully."))
 
-(defgeneric timer-pointer (timer)
+(defgeneric timer-pointer (etimer)
   (:documentation "When not null returns an Ecore_Timer pointer, it signals a ECORE-ERROR otherwise." ))
 
-(defgeneric timer-reset (timer)
+(defgeneric timer-reset (etimer)
   (:documentation "Reset a timer to its full interval This doesn't affect the interval of a timer
 
 - TIMER a timer instance"))
 
-(defgeneric timer-del (timer)
+(defgeneric timer-del (etimer)
   (:documentation "Reset a timer to its full interval This doesn't affect the interval of a timer
 
 - TIMER a timer instance"))
 
-(defgeneric timer-delay (timer delay)
+(defgeneric timer-delay (etimer delay)
   (:documentation "Add some delay for the next occurrence of a timer.
 
 This doesn't affect the interval of a timer.
@@ -63,17 +63,17 @@ This doesn't affect the interval of a timer.
 - TIMER a timer instance
 - DELAY The delay to add to the next iteration."))
 
-(defgeneric timer-freeze (timer)
+(defgeneric timer-freeze (etimer)
   (:documentation "Pauses a running timer.
 
 The timer callback won't be called while the timer is paused. The remaining time until the timer expires will be saved, so the timer can be resumed with that same remaining time to expire, instead of expiring instantly.
 
 - TIMER a timer instance"))
 
-(defgeneric timer-interval (timer)
+(defgeneric timer-interval (etimer)
   (:documentation "Get the interval the timer ticks on."))
 
-(defgeneric (setf timer-interval) (interval timer)
+(defgeneric (setf timer-interval) (interval etimer)
   (:documentation "Change the interval the timer ticks of.
 
 If set during a timer call, this will affect the next interval.
@@ -81,12 +81,12 @@ If set during a timer call, this will affect the next interval.
 - TIMER a timer instance
 - INTERVAL the interval in seconds"))
 
-(defgeneric timer-pending (timer)
+(defgeneric timer-pending (etimer)
   (:documentation "Gets the pending time.
 
 - TIMER a timer instance"))
 
-(defgeneric timer-thaw (timer)
+(defgeneric timer-thaw (etimer)
   (:documentation "Resumes a frozen (paused) timer.
 
 The timer will be resumed from its previous relative position in time. That means, if it had X seconds remaining until expire when it was paused, it will be started now with those same X seconds remaining to expire again. But notice that the interval time won't be touched by this call or by TIMER_FREEZE.
@@ -154,75 +154,74 @@ Example: We have 2 timers, one that expires in a 2.0s and another that expires i
 "
   (f-ecore-timer-precision-set (coerce precision 'double-float)))
 
-(defmethod timer-pointer ((timer timer))
-  (or (slot-value timer 'pointer) (signal 'ecore-error :message "Invalid Ecore_Timer pointer")))
+(defmethod timer-pointer ((etimer etimer))
+  (or (slot-value etimer 'pointer) (signal 'ecore-error :message "Invalid Ecore_Timer pointer")))
 
-(defmethod timer-thaw ((timer timer))
-  (f-ecore-timer-thaw (timer-pointer timer)))
+(defmethod timer-thaw ((etimer etimer))
+  (f-ecore-timer-thaw (timer-pointer etimer)))
 
-(defmethod timer-pending ((timer timer))
-  (f-ecore-timer-pending-get (timer-pointer timer)))
+(defmethod timer-pending ((etimer etimer))
+  (f-ecore-timer-pending-get (timer-pointer etimer)))
 
-(defmethod timer-interval ((timer timer))
-  (f-ecore-timer-interval-get (timer-pointer timer)))
+(defmethod timer-interval ((etimer etimer))
+  (f-ecore-timer-interval-get (timer-pointer etimer)))
 
-(defmethod (setf timer-interval) (interval (timer timer))
-  (f-ecore-timer-interval-set (coerce interval 'double-float) (timer-pointer timer)))
+(defmethod (setf timer-interval) (interval (etimer etimer))
+  (f-ecore-timer-interval-set (coerce interval 'double-float) (timer-pointer etimer)))
 
 
-(defmethod timer-reset ((timer timer))
-  (f-ecore-timer-reset (timer-pointer timer)))
+(defmethod timer-reset ((etimer etimer))
+  (f-ecore-timer-reset (timer-pointer etimer)))
 
-(defmethod timer-del ((timer timer))
+(defmethod timer-del ((etimer etimer))
   (with-slots ((pointer pointer))
-      timer
+      etimer
     (when pointer 
       (f-ecore-timer-del pointer)
       (setf pointer nil))))
 
-(defmethod timer-delay ((timer timer) delay)
-  (f-ecore-timer-delay (timer-pointer timer) (coerce delay 'double-float)))
+(defmethod timer-delay ((etimer etimer) delay)
+  (f-ecore-timer-delay (timer-pointer etimer) (coerce delay 'double-float)))
 
-(defmacro def-timer-callback (func timer)
+(defmacro def-timer-callback (func etimer)
   (let ((fname (intern  (symbol-name (gensym)) :keyword))
 	(data (gensym))
 	(do-again (gensym))
 	(e (gensym))
 	(g-timer (gensym))
 	(g-func (gensym)))
-    `(let ((,g-timer ,timer)
+    `(let ((,g-timer ,etimer)
 	   (,g-func ,func)) 
        (defcallback ,fname :int
 	   ((,data :pointer))
 	 (declare (ignore ,data))
-	 (let ((,do-again t))
-	   (unwind-protect
-		(handler-case
-		    (funcall ,g-func)
-		  (ecore-error (,e) 
-		    (setf ,do-again nil
-			  (slot-value ,g-timer 'pointer) nil) 
-		    (and (not (typep ,e 'last-iteration)) 
-			 (progn (error ,e)))))
-	     ,do-again))))))
+	 (let ((,do-again 1))
+	   (handler-case
+	       (funcall ,g-func)
+	     (ecore-error (,e) 
+	       (setf ,do-again 0
+		     (slot-value ,g-timer 'pointer) nil) 
+	       (and (not (typep ,e 'last-iteration)) 
+		    (progn (error ,e)))))
+	   ,do-again)))))
 
-(defmethod initialize-instance :after ((timer timer) &key)
+(defmethod initialize-instance :after ((etimer etimer) &key)
   (with-slots ((pointer pointer)
 	       (timeout timeout)
 	       (job job)
 	       (loop-p loop-p))
-      timer
+      etimer
     (flet ((timer-add (timeout timeout-relative-p job)
-	     (let ((cb (def-timer-callback job timer))
+	     (let ((cb (def-timer-callback job etimer))
 		   (ecore-timer-func (or (and timeout-relative-p #'f-ecore-timer-loop-add)
-					 #'f-ecore-timer-add)))
-	       (make-instance 'timer :pointer (funcall ecore-timer-func (coerce timeout 'double-float) 
-						       (get-callback cb)
-						       (null-pointer))))))
+					 #'f-ecore-timer-add)))	       
+	       (funcall ecore-timer-func (coerce timeout 'double-float) 
+			(get-callback cb)
+			(null-pointer)))))
       (setf pointer
 	    (timer-add timeout loop-p job)))))
 
-(defmacro make-timer (job &key (timeout 1) loop-p)
+(defmacro make-etimer (job &key (timeout 1) loop-p)
   "Creates a timer to call the given function in the given period of time.
 
 - JOB A callback function. To stop the timer signal a LAST-ITERATION condition or call TIMER-DEL. 
@@ -237,7 +236,7 @@ Returns a TIMER instance"
     `(let ((,g-timeout ,timeout)
 	   (,g-loop-p ,loop-p)
 	   (,g-job ,job)) 
-       (make-instance 'timer
+       (make-instance 'etimer
 		      :timeout ,g-timeout
 		      :loop-p ,g-loop-p
 		      :job ,g-job))))
