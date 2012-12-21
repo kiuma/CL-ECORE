@@ -1,7 +1,7 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
 ;;; $Header: src/ecore-timer.lisp $
 
-;;; Copyright (c) 2010, Andrea Chiumenti.  All rights reserved.
+;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
 ;;; Redistribution and use in source and binary forms, with or without
 ;;; modification, are permitted provided that the following conditions
@@ -30,7 +30,7 @@
 (in-package :ecore)
 
 (defclass timer () 
-  ((pointer :writer timer-pointer :initarg :pointer)
+  ((pointer :initarg :pointer)
    (timeout :initarg :timeout)
    (job :initarg :job
 	:documentation "The job of this timer (as a callback function)")
@@ -127,9 +127,9 @@ The timer will be resumed from its previous relative position in time. That mean
 (defcfun ("ecore_timer_pending_get" f-ecore-timer-pending-get) :double
   (timer :pointer))
 
-(defcfun ("ecore_timer_precision-get" f-ecore-timer-precision-get) :void)
+(defcfun ("ecore_timer_precision_get" f-ecore-timer-precision-get) :void)
 
-(defcfun ("ecore_timer_precision-set" f-ecore-timer-precision-get) :void
+(defcfun ("ecore_timer_precision_set" f-ecore-timer-precision-set) :void
   (precision :double))
 
 (defcfun ("ecore_timer_thaw" f-ecore-timer-thaw) :void
@@ -176,9 +176,9 @@ Example: We have 2 timers, one that expires in a 2.0s and another that expires i
 (defmethod timer-del ((timer timer))
   (with-slots ((pointer pointer))
       timer
-    (and pointer 
-	 (f-ecore-timer-del pointer)
-	 (setf pointer nil))))
+    (when pointer 
+      (f-ecore-timer-del pointer)
+      (setf pointer nil))))
 
 (defmethod timer-delay ((timer timer) delay)
   (f-ecore-timer-delay (timer-pointer timer) (coerce delay 'double-float)))
@@ -201,7 +201,7 @@ Example: We have 2 timers, one that expires in a 2.0s and another that expires i
 		    (funcall ,g-func)
 		  (ecore-error (,e) 
 		    (setf ,do-again nil
-			  (timer-pointer ,g-timer) nil) 
+			  (slot-value ,g-timer 'pointer) nil) 
 		    (and (not (typep ,e 'last-iteration)) 
 			 (progn (error ,e)))))
 	     ,do-again))))))
