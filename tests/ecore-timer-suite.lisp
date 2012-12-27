@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: cl-efl.asd $
+;;; $Header: tests/eore-timer-suite.lisp $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -27,20 +27,38 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(asdf:defsystem :cl-ecore
-  :name "cl-ecore"
-  :author "Andrea Chiumenti"
-  :description "Bindings for ECORE enlightenment library."
-  :depends-on (:cffi)
-  :components ((:module src
-                        :components ((:file "packages")
-				     (:file "ecore" :depends-on ("packages"))
-                                     (:file "ecore-timer" :depends-on ("ecore"))
-				     (:file "ecore-event" :depends-on ("ecore"))))))
+(in-package :ecore-tests)
 
+(in-suite :ecore-timer)
 
-(defmethod asdf:perform ((op asdf:load-op) (sys (eql (asdf:find-system :cl-ecore))))
-  (asdf:oos 'asdf:test-op :cl-ecore-tests))
+(test (make-etimer-test :compile-at :definition-time)
+      (let ((x 0)
+	    (start (get-internal-real-time)))
+	(in-ecore-loop 
+	  (make-etimer
+		 (lambda () 
+		   (incf x)
+		   (format t "X is: ~d~%" x)
+		   (when (= x 9)
+		     (ecore-loop-quit)))
+		 :timeout 0.1))
+	(is (=  9 x))
+	(is (> 1.1 (elapsed start)))))
 
-(defmethod asdf:operation-done-p ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore))))
-  nil)
+(test (slow-down-timer :compile-at :definition-time)
+  (flet ((delay (tmr seconds)
+	   (timer-delay tmr seconds)))
+    (let ((x 0)
+	  (timer)
+	  (start (get-internal-real-time)))
+      (in-ecore-loop 
+	(setf timer (make-etimer
+		     (lambda () 
+		       (incf x)
+		       (format t "X is: ~d~%" x)
+		       (when (= x 1)
+			 (delay timer 1))
+		       (when (= x 2)
+			 (ecore-loop-quit)))
+		     :timeout 0.1)))
+      (is (< 1 (elapsed start))))))

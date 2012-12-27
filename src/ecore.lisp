@@ -76,3 +76,12 @@
   (:report (lambda (condition stream)
 	     (format stream "~a ~a~%" (type-of condition)
 		     (message condition)))))
+
+(define-condition discard (ecore-error) 
+  ()
+  (:documentation "- Inside a timer callback function, signal this condition to termiate the timer gracefully.
+
+- For an EVENT-HANDLER callback, it will cease processing handlers for that particular event, so all handler set to handle that event type that have not already been called, will not be."))
+
+(defctype eina-true :int 1)
+(defctype eina-false :int 0)

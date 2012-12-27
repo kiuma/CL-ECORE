@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: cl-efl.asd $
+;;; $Header: tests/eore-event-suite.lisp $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -27,20 +27,20 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(asdf:defsystem :cl-ecore
-  :name "cl-ecore"
-  :author "Andrea Chiumenti"
-  :description "Bindings for ECORE enlightenment library."
-  :depends-on (:cffi)
-  :components ((:module src
-                        :components ((:file "packages")
-				     (:file "ecore" :depends-on ("packages"))
-                                     (:file "ecore-timer" :depends-on ("ecore"))
-				     (:file "ecore-event" :depends-on ("ecore"))))))
+(in-package :ecore-tests)
 
-
-(defmethod asdf:perform ((op asdf:load-op) (sys (eql (asdf:find-system :cl-ecore))))
-  (asdf:oos 'asdf:test-op :cl-ecore-tests))
-
-(defmethod asdf:operation-done-p ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore))))
-  nil)
+(test (exit-loop-on-user-event :compile-at :definition-time)
+  (let ((ecore-loop-executed-p nil))
+    (in-ecore-loop
+      (format t "defining event~%")
+      (defevent quit-event () (x))
+      (format t "creating handler for event-type ~a\(~a\)~%" 'quit-event (event-type 'quit-event))
+      (make-event-handler (event-type 'quit-event) 
+			  (lambda ()
+			    (format t "Fire of QUIT-EVENT event~%")
+			    (setf ecore-loop-executed-p t)
+			    ;(format t "Quitting on event ~a" (event-type *event*))
+			    (ecore-loop-quit)))
+      (format t "adding event to queue~%")
+      (event-add (make-instance 'quit-event)))
+    (is-true ecore-loop-executed-p)))

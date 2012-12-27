@@ -29,6 +29,9 @@
 
 (in-package :ecore)
 
+(defvar *etimer* nil
+  "Varibale used to get the current running timer when inside a timer callback")
+
 (defclass etimer () 
   ((pointer :initarg :pointer)
    (timeout :initarg :timeout)
@@ -37,10 +40,6 @@
    (loop-p :reader timer-loop-p :initarg :loop-p
 	   :documentation "When true, the next timeout is relative to the end of the current timer workload"))
   (:default-initargs :loop-p nil))
-
-(define-condition last-iteration (ecore-error) 
-  ()
-  (:documentation "Inside a callback timer function, signal this condition to termiate the timer gracefully."))
 
 (defgeneric timer-pointer (etimer)
   (:documentation "When not null returns an Ecore_Timer pointer, it signals a ECORE-ERROR otherwise." ))
@@ -51,7 +50,7 @@
 - ETIMER a timer instance"))
 
 (defgeneric timer-del (etimer)
-  (:documentation "Reset a timer to its full interval This doesn't affect the interval of a timer
+  (:documentation "The data pointer set for the timer when ecore_timer_add was called. NULL is returned if the function is unsuccessful.
 
 - ETIMER a timer instance"))
 
@@ -184,7 +183,7 @@ Example: We have 2 timers, one that expires in a 2.0s and another that expires i
   (f-ecore-timer-delay (timer-pointer etimer) (coerce delay 'double-float)))
 
 (defmacro def-timer-callback (func etimer)
-  (let ((fname (intern  (symbol-name (gensym)) :keyword))
+  (let ((fname (intern  (symbol-name (gensym))))
 	(data (gensym))
 	(do-again (gensym))
 	(e (gensym))
@@ -197,11 +196,12 @@ Example: We have 2 timers, one that expires in a 2.0s and another that expires i
 	 (declare (ignore ,data))
 	 (let ((,do-again 1))
 	   (handler-case
-	       (funcall ,g-func)
+	       (let ((*etimer* ,g-timer))
+		 (funcall ,g-func))
 	     (ecore-error (,e) 
 	       (setf ,do-again 0
 		     (slot-value ,g-timer 'pointer) nil) 
-	       (and (not (typep ,e 'last-iteration)) 
+	       (and (not (typep ,e 'discard)) 
 		    (progn (error ,e)))))
 	   ,do-again)))))
 

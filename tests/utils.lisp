@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: cl-efl.asd $
+;;; $Header: tests/utils.lisp $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -27,20 +27,9 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(asdf:defsystem :cl-ecore
-  :name "cl-ecore"
-  :author "Andrea Chiumenti"
-  :description "Bindings for ECORE enlightenment library."
-  :depends-on (:cffi)
-  :components ((:module src
-                        :components ((:file "packages")
-				     (:file "ecore" :depends-on ("packages"))
-                                     (:file "ecore-timer" :depends-on ("ecore"))
-				     (:file "ecore-event" :depends-on ("ecore"))))))
+(in-package :ecore-tests)
 
-
-(defmethod asdf:perform ((op asdf:load-op) (sys (eql (asdf:find-system :cl-ecore))))
-  (asdf:oos 'asdf:test-op :cl-ecore-tests))
-
-(defmethod asdf:operation-done-p ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore))))
-  nil)
+(defun elapsed (prev-time)
+  (/ (- (get-internal-real-time)
+	prev-time)
+     internal-time-units-per-second))

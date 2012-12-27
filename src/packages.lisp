@@ -27,16 +27,17 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(in-package :cl-user)
+(in-package #:cl-user)
 
-(defpackage :ecore
+(defpackage #:ecore
   (:use :cl :cffi)
   (:documentation "Ecore binding for CL")
   (:export #:in-ecore-loop
 	   #:ecore-loop-quit
 	   #:ecore-error
-	   ;; ecore-timer 
+	   ;; timer ----
 	   #:etimer
+	   #:*etimer*
 	   #:last-iteration
 	   #:timer-loop-p
 	   #:timer-interval
@@ -48,5 +49,14 @@
 	   #:timer-del
 	   #:timer-delay
 	   #:make-etimer
-
+	   ;;events ----
+	   #:defevent
+	   #:event-handler
+	   #:*event*
+	   #:event-handler-del
+	   #:make-event-handler
+	   #:ecore-event
+	   #:event-type
+	   #:event-add
+	   #:event-del
 ))
