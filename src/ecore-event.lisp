@@ -61,20 +61,18 @@
 	    (,g-event-type :int)
 	    (,g-event :pointer))
 	 (declare (ignore ,g-data))
-	 (ecore-loop-quit)
-	 1
-	 #|
 	 (let ((*event* (gethash ,g-event %events%))
 	       (,g-continue 1))
 	   (handler-case
 	       (progn
+		 #|
 		 (unless *event*			
 		   (setf *event* (make-instance 'ecore-event :type ,g-event-type)))	     
+		 |#
 		 (funcall ,g-func))
 	     (discard () (setf ,g-continue 0)))
-	   (format t "fanculo> ~a~%" ,g-continue)
-	   ,g-continue)
-	 |#))))
+	   ,g-continue)))))
+
 
 
 (defmethod initialize-instance :after ((handler event-handler) &key type)
@@ -87,7 +85,8 @@
 			     :int type
 			     :pointer (get-callback cb) 
 			     :pointer (null-pointer) 
-			     :pointer)))))
+			     :pointer))
+      (format t "Handler initialized ~%"))))
 
 (defmacro make-event-handler (event-type callback)
   "Creates an event handler that will havle the event with the given callback.
@@ -157,7 +156,7 @@ the current event handler given by *EVENT-HANDLER*"
 	(setf pointer (foreign-funcall "ecore_event_add"
 				       :int (event-type event)
 				       :pointer (null-pointer)
-				       :pointer (get-callback cb)
+				       :pointer (null-pointer);(get-callback cb)
 				       
 				       :pointer (null-pointer)
 				       :pointer))	

@@ -29,6 +29,8 @@
 
 (in-package :ecore-tests)
 
+(in-suite :ecore-event)
+
 (test (exit-loop-on-user-event :compile-at :definition-time)
   (let ((ecore-loop-executed-p nil))
     (in-ecore-loop
@@ -43,4 +45,5 @@
 			    (ecore-loop-quit)))
       (format t "adding event to queue~%")
       (event-add (make-instance 'quit-event)))
-    (is-true ecore-loop-executed-p)))
+    (is-true ecore-loop-executed-p))) 
+
