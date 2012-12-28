@@ -49,43 +49,40 @@
 (defvar *event* nil
   "Varibale used to get the current event when inside an event-handler callback")
 
-(defmacro def-event-handler-callback (func)
-  (let ((fname (intern  (symbol-name (gensym))))
-	(g-data (gensym))
-	(g-event-type (gensym))
-	(g-event (gensym))	
-	(g-func (gensym))
-	(g-continue (gensym)))
-    `(let ((,g-func ,func)) 
-       (defcallback ,fname :int
-	   ((,g-data :pointer)
-	    (,g-event-type :int)
-	    (,g-event :pointer))
-	 (declare (ignore ,g-data ,g-event-type))	
-	 (let ((*event* (gethash (cffi-sys:pointer-address ,g-event) %events%))
-	       (,g-continue 1))
-	   (handler-case
-	       (progn		 
-		 (unless *event*			
-		   (setf *event* (make-instance 'ecore-event :type ,g-event-type)))
-		 (funcall ,g-func))
-	     (discard () (setf ,g-continue 0)))
-	   ,g-continue)))))
-
-
-
 (defmethod initialize-instance :after ((handler event-handler) &key type)
   (with-slots ((pointer pointer)	     
 	       (callback callback))
       handler
-    (let ((cb (def-event-handler-callback callback)))    
-      (setf pointer
-	    (foreign-funcall "ecore_event_handler_add"
-			     :int type
-			     :pointer (get-callback cb) 
-			     :pointer (null-pointer) 
-			     :pointer))
-      (format t "Handler initialized ~%"))))
+    (macrolet ((def-event-handler-callback (func)
+		 (let ((fname (intern  (symbol-name (gensym))))
+		       (g-data (gensym))
+		       (g-event-type (gensym))
+		       (g-event (gensym))	
+		       (g-func (gensym))
+		       (g-continue (gensym)))
+		   `(let ((,g-func ,func)) 
+		      (defcallback ,fname :int
+			  ((,g-data :pointer)
+			   (,g-event-type :int)
+			   (,g-event :pointer))
+			(declare (ignore ,g-data))	
+			(let ((*event* (gethash (cffi-sys:pointer-address ,g-event) %events%))
+			      (,g-continue 1))
+			  (handler-case
+			      (progn		 
+				(unless *event*			
+				  (setf *event* (make-instance 'ecore-event :type ,g-event-type)))
+				(funcall ,g-func))
+			    (discard () (setf ,g-continue 0)))
+			  ,g-continue))))))
+      (let ((cb (def-event-handler-callback callback)))    
+	(setf pointer
+	      (foreign-funcall "ecore_event_handler_add"
+			       :int type
+			       :pointer (get-callback cb) 
+			       :pointer (null-pointer) 
+			       :pointer))
+	(format t "Handler initialized ~%")))))
 
 (defmacro make-event-handler (event-type callback)
   "Creates an event handler that will havle the event with the given callback.
@@ -137,7 +134,7 @@ the current event handler given by *EVENT-HANDLER*"
 		       (user-data (gensym))
 		       (func-data (gensym)))
 		   `(let ((,g-event ,event)) 
-		      (defcallback ,fname :int
+		      (defcallback ,fname :void
 			  ((,user-data :pointer)
 			   (,func-data :pointer))			
 			(declare (ignore ,user-data))
@@ -145,9 +142,7 @@ the current event handler given by *EVENT-HANDLER*"
 			      (slot-value ,g-event 'holder) nil)
 			(when (not (null-pointer-p ,func-data))
 			  (remhash (cffi-sys:pointer-address ,func-data)  %events%)
-			  (foreign-free ,func-data))
-			0; ??????????????????? investigate ... return should be void
-			)))))
+			  (foreign-free ,func-data)))))))
       (let ((end-cb (def-event-end-cb event))
 	    (event-holder (cffi:foreign-alloc :long :initial-element 1)))
 	(setf pointer (foreign-funcall "ecore_event_add"
