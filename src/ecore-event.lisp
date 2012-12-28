@@ -156,7 +156,7 @@ the current event handler given by *EVENT-HANDLER*"
 			(when (not (null-pointer-p ,func-data))
 			  (remhash (cffi-sys:pointer-address ,func-data)  %events%)
 			  (foreign-free ,func-data))
-			0; ??????????????????? investigate ... return sould be void
+			0; ??????????????????? investigate ... return should be void
 			)))))
       (let ((end-cb (def-event-end-cb event))
 	    (event-holder (cffi:foreign-alloc :long :initial-element 1)))
