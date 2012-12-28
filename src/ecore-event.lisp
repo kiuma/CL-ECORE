@@ -61,23 +61,13 @@
 	   ((,g-data :pointer)
 	    (,g-event-type :int)
 	    (,g-event :pointer))
-	 (declare (ignore ,g-data ,g-event-type))
-	 (loop for key being the hash-keys of ecore::%events%
-	       using (hash-value value)
-	       do (format t "EVENTS HASH: ~a: ~a~%" key value))
-	 ;(format t "data is: ~a~%" ,g-data)
-	 ;(format t "event-type is: ~a~%" ,g-event-type)
-	 ;(format t "event is: ~a~%" (foreign-string-to-lisp ,g-event))
-	 ;(format t "event-foreign is: ~a~%" (foreign-funcall "ecore_event_current_event_get" :pointer))
+	 (declare (ignore ,g-data ,g-event-type))	
 	 (let ((*event* (gethash (cffi-sys:pointer-address ,g-event) %events%))
 	       (,g-continue 1))
 	   (handler-case
-	       (progn
-		 
-		 #|
+	       (progn		 
 		 (unless *event*			
 		   (setf *event* (make-instance 'ecore-event :type ,g-event-type)))
-		 |#
 		 (funcall ,g-func))
 	     (discard () (setf ,g-continue 0)))
 	   ,g-continue)))))
