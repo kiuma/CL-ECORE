@@ -35,6 +35,7 @@
   (:export #:in-ecore-loop
 	   #:ecore-loop-quit
 	   #:ecore-error
+	   #:discard
 	   ;; timer ----
 	   #:etimer
 	   #:*etimer*
@@ -51,7 +52,6 @@
 	   #:make-etimer
 	   ;;events ----
 	   #:defevent
-	   #:event-handler
 	   #:*event*
 	   #:event-handler-del
 	   #:make-event-handler
@@ -59,4 +59,6 @@
 	   #:event-type
 	   #:event-add
 	   #:event-del
+	   #:make-event-filter
+	   #:event-filter-del
 ))

@@ -55,7 +55,7 @@
 	(setf timer (make-etimer
 		     (lambda () 
 		       (incf x)
-		       (format t "X is: ~d~%" x)
+		       (format t "sd X is: ~d~%" x)
 		       (when (= x 1)
 			 (delay timer 1))
 		       (when (= x 2)
