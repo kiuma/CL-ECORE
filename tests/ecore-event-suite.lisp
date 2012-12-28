@@ -32,7 +32,8 @@
 (in-suite :ecore-event)
 
 (test (exit-loop-on-user-event :compile-at :definition-time)
-  (let ((ecore-loop-executed-p nil))
+  (let ((ecore-loop-executed-p nil)
+	(event nil))
     (in-ecore-loop
       (format t "defining event~%")
       (defevent quit-event () (x))
@@ -40,10 +41,10 @@
       (make-event-handler (event-type 'quit-event) 
 			  (lambda ()
 			    (format t "Fire of QUIT-EVENT event~%")
-			    (setf ecore-loop-executed-p t)
-			    ;(format t "Quitting on event ~a" (event-type *event*))
+			    (setf ecore-loop-executed-p t
+				  event *event*)
 			    (ecore-loop-quit)))
       (format t "adding event to queue~%")
       (event-add (make-instance 'quit-event)))
-    (is-true ecore-loop-executed-p))) 
-
+    (is-true ecore-loop-executed-p)
+    (is (not (null event))))) 

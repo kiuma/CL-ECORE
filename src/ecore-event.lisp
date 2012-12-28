@@ -34,6 +34,7 @@
 
 (defclass ecore-event ()
   ((pointer :initform nil)
+   (holder :initform nil)
    (type :reader event-type :initarg :type)))
 
 (defclass event-handler ()
@@ -60,14 +61,22 @@
 	   ((,g-data :pointer)
 	    (,g-event-type :int)
 	    (,g-event :pointer))
-	 (declare (ignore ,g-data))
-	 (let ((*event* (gethash ,g-event %events%))
+	 (declare (ignore ,g-data ,g-event-type))
+	 (loop for key being the hash-keys of ecore::%events%
+	       using (hash-value value)
+	       do (format t "EVENTS HASH: ~a: ~a~%" key value))
+	 ;(format t "data is: ~a~%" ,g-data)
+	 ;(format t "event-type is: ~a~%" ,g-event-type)
+	 ;(format t "event is: ~a~%" (foreign-string-to-lisp ,g-event))
+	 ;(format t "event-foreign is: ~a~%" (foreign-funcall "ecore_event_current_event_get" :pointer))
+	 (let ((*event* (gethash (cffi-sys:pointer-address ,g-event) %events%))
 	       (,g-continue 1))
 	   (handler-case
 	       (progn
+		 
 		 #|
 		 (unless *event*			
-		   (setf *event* (make-instance 'ecore-event :type ,g-event-type)))	     
+		   (setf *event* (make-instance 'ecore-event :type ,g-event-type)))
 		 |#
 		 (funcall ,g-func))
 	     (discard () (setf ,g-continue 0)))
@@ -112,16 +121,6 @@ the current event handler given by *EVENT-HANDLER*"
 (defgeneric event-del (event)
   (:documentation "Deletes an event from the event queue."))
 
-(defmethod initialize-instance :after ((event ecore-event) &key)
-  (with-slots ((pointer pointer))
-      event
-    (setf pointer (foreign-funcall "ecore_event_add" 
-				   :int (event-type event)
-				   :pointer (null-pointer) 
-				   :pointer (null-pointer) 
-				   :pointer (null-pointer) 
-				   :pointer))))
-
 (defmacro defevent (event-name superclasses (slots) &rest rest)
   `(progn 
      (unless (gethash ',event-name %event-types%)
@@ -139,7 +138,8 @@ the current event handler given by *EVENT-HANDLER*"
       (error 'ecore-error :message (format nil "Undefined event ~a" event-name))))
 
 (defmethod event-add ((event ecore-event))
-  (with-slots ((pointer pointer))
+  (with-slots ((pointer pointer)
+	       (holder holder))
       event
     (macrolet ((def-event-end-cb (event)
 		 (let ((fname (intern  (symbol-name (gensym))))
@@ -150,17 +150,24 @@ the current event handler given by *EVENT-HANDLER*"
 		      (defcallback ,fname :int
 			  ((,user-data :pointer)
 			   (,func-data :pointer))			
-			(declare (ignore ,user-data ,func-data))
-			(remhash (slot-value ,g-event 'pointer) %events%))))))
-      (let ((cb (def-event-end-cb event)))
+			(declare (ignore ,user-data))
+			(setf (slot-value ,g-event 'pointer) nil
+			      (slot-value ,g-event 'holder) nil)
+			(when (not (null-pointer-p ,func-data))
+			  (remhash (cffi-sys:pointer-address ,func-data)  %events%)
+			  (foreign-free ,func-data))
+			0; ??????????????????? investigate ... return sould be void
+			)))))
+      (let ((end-cb (def-event-end-cb event))
+	    (event-holder (cffi:foreign-alloc :long :initial-element 1)))
 	(setf pointer (foreign-funcall "ecore_event_add"
 				       :int (event-type event)
+				       :pointer event-holder
+				       :pointer (get-callback end-cb)
 				       :pointer (null-pointer)
-				       :pointer (null-pointer);(get-callback cb)
-				       
-				       :pointer (null-pointer)
-				       :pointer))	
-	(setf (gethash pointer %events%) event)))))
+				       :pointer)
+	      holder event-holder)	
+	(setf (gethash (cffi-sys:pointer-address event-holder) %events%) event)))))
 
 (defmethod event-del ((event ecore-event))
   (with-slots ((pointer pointer))
