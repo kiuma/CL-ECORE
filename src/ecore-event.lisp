@@ -167,7 +167,19 @@ the current event handler given by *EVENT-HANDLER*"
 (defclass event-filter () 
   ((pointer :initarg :pointer)))
 
+(defgeneric event-filter-del (filter)
+  (:documentation "Deletes an event filter. See MAKE-EVENT-FILTER"))
+
 (defun make-event-filter (&key before-event-cb after-event-cb)
+  "Add a filter the current event queue.
+
+- BEFORE-EVENT-CB a calllback that is fired before event handlers.
+To discard the event, signal a DISCARD condition.
+
+- AFTER-EVENT-CB a callback ther is fired after event handlers are done.
+
+Current event is accessible throught the *EVENT-VARIABLE*"
+
   (macrolet ((make-start-cb ()
 	       (let ((fname (intern  (symbol-name (gensym))))
 		     (g-data (gensym)))

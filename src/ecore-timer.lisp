@@ -116,7 +116,7 @@ Example: We have 2 timers, one that expires in a 2.0s and another that expires i
   (or (slot-value etimer 'pointer) (signal 'ecore-error :message "Invalid Ecore_Timer pointer")))
 
 (defmethod timer-freeze ((etimer etimer))
-  (foreign-funcall "ecore_timer_feeze" 
+  (foreign-funcall "ecore_timer_freeze" 
 		   :pointer (timer-pointer etimer)
 		   :void))
 

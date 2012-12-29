@@ -38,7 +38,6 @@
 	  (make-etimer
 		 (lambda () 
 		   (incf x)
-		   (format t "X is: ~d~%" x)
 		   (when (= x 9)
 		     (ecore-loop-quit)))
 		 :timeout 0.1))
@@ -55,10 +54,60 @@
 	(setf timer (make-etimer
 		     (lambda () 
 		       (incf x)
-		       (format t "sd X is: ~d~%" x)
 		       (when (= x 1)
-			 (delay timer 1))
-		       (when (= x 2)
+			 (delay timer 0.5))
+		       (when (= x 2)			 
 			 (ecore-loop-quit)))
 		     :timeout 0.1)))
-      (is (< 1 (elapsed start))))))
+      (is (> (elapsed start) 0.5)))))
+
+
+(defun ecore-test-function (func)
+  (let ((x 0)
+	(timer)
+	(func-test)
+	(start (get-internal-real-time)))
+    (in-ecore-loop 
+      (setf timer (make-etimer
+		   (lambda () 
+		     (incf x)
+		     (when (= x 1)
+		       (setf func-test (funcall func timer)))
+		     (when (= x 2)
+		       (ecore-loop-quit)))
+		   :timeout 0.1)))
+    (when (and func-test (eql (type-of func-test) 'function))
+      (funcall func-test))
+    (is (> (elapsed start) 0))))
+
+(test (timer-reset-call :compile-at :definition-time)
+  (ecore-test-function (lambda (timer) (timer-reset timer))))
+
+(test (timer-pending-call :compile-at :definition-time)
+  (ecore-test-function (lambda (timer) (timer-pending timer))))
+
+(test (timers-precision-call :compile-at :definition-time)
+  (ecore-test-function (lambda (timer) 
+			 (declare (ignore timer))
+			 (timers-precision-setf 1)
+			 (lambda () (is (= (timers-precision) 1))))))
+
+(test (timer-freeze-and-thaw-call :compile-at :definition-time)
+  (ecore-test-function (lambda (timer) 
+			 (timer-freeze timer)
+			 (timer-thaw timer))))
+
+(test (timer-interval-call :compile-at :definition-time)
+  (ecore-test-function (lambda (timer) 
+			 (setf (timer-interval timer) 0.5)
+			 (let ((interval (timer-interval timer))
+			       (start-interval-change (get-internal-real-time)))
+			   (lambda () 
+			     (is (= interval 0.5))
+			     (is (>= (elapsed start-interval-change) 0.5)))))))
+
+(test (timer-del-call :compile-at :definition-time)
+  (ecore-test-function (lambda (timer) 
+			 (timer-del timer)
+			 (ecore-loop-quit)
+			 (is (null (slot-value timer 'ecore::pointer))))))

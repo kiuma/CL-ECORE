@@ -39,12 +39,13 @@
 	   ;; timer ----
 	   #:etimer
 	   #:*etimer*
-	   #:last-iteration
-	   #:timer-loop-p
+	   #:last-iteration ;; to remove
+	   #:timer-loop-p ;; to remove
 	   #:timer-interval
 	   #:timer-pending
 	   #:timers-precision
 	   #:timers-precision-setf
+	   #:timer-freeze
 	   #:timer-thaw
 	   #:timer-reset
 	   #:timer-del
