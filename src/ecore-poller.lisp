@@ -81,7 +81,7 @@ Returns an EPOLLER instance"
 		      :interval ,g-interval
 		      :callback ,g-job))))
 
-(defmethod ecore-del ((poller epoller))
+(defmethod ecore-del :after ((poller epoller))
   (with-slots ((pointer pointer))
       poller
     (when pointer

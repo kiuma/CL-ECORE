@@ -38,6 +38,7 @@
 	  (make-poller
 		 (lambda () 
 		   (incf x)
+		   (ecore-del *ecore-object*)
 		   (ecore-loop-quit))
 		 :interval 2))
 	(is (=  1 x))
@@ -79,4 +80,3 @@
     (is (=  2 x))
     (is (= 2 interval))
     (is (< 0 (elapsed start)))))
-#||#

@@ -83,7 +83,7 @@ the current event handler given by *ECORE-OBJECT* variable"
 		  :type ,event-type
 		  :callback ,callback))
 
-(defmethod ecore-del ((handler event-handler))
+(defmethod ecore-del :after ((handler event-handler))
   (with-slots ((pointer pointer))
       handler
     (when pointer
@@ -142,7 +142,7 @@ the current event handler given by *ECORE-OBJECT* variable"
 	      holder event-holder)	
 	(setf (gethash (cffi-sys:pointer-address event-holder) %events%) event)))))
 
-(defmethod ecore-del ((event ecore-event))
+(defmethod ecore-del :after ((event ecore-event))
   (with-slots ((pointer pointer))
       event
     (when pointer
@@ -220,7 +220,7 @@ Current event is accessible throught the *ECORE-OBJECT* variable"
 				    :pointer (or (and after-event-cb (get-callback (make-after-cb after-event-cb))) (null-pointer))
 				    :pointer))))
 
-(defmethod ecore-del ((filter event-filter))
+(defmethod ecore-del :after ((filter event-filter))
   (with-slots ((pointer pointer))
       filter
     (when pointer

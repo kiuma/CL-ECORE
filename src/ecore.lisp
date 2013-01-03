@@ -34,12 +34,8 @@
     (t (:default "libecore")))
 
 (use-foreign-library libecore)
-
-(defcfun ("ecore_main_loop_begin" main-loop-begin) :void)
-(defcfun ("ecore_main_loop_quit" ecore-loop-quit) :void)
-(defcfun ("ecore_init" ecore-init) :void)
-(defcfun ("ecore_shutdown" ecore-shutdown) :void)
  
+(defvar %ecore-objects% (make-hash-table))
 
 (defvar *ecore-object* nil
   "Varibale used to get the current Ecore object when inside a timer callback")
@@ -70,15 +66,8 @@ Since Linux 2.6.11, the pipe maximum capacity is 65536 bytes")
 	    (*callback-event* ,event))
 	,@body))))
 |#  
-(defmacro in-ecore-loop (&body body)
-  (let ((fname (gensym))
-	(cb (gensym)))
-    `(flet ((,fname (,cb)
-	     (ecore-init)
-	     (funcall ,cb)
-	     (main-loop-begin)
-	     (ecore-shutdown)))
-      (,fname (lambda () ,@body)))))
+
+
 
 (define-condition ecore-error (error)
   ((message :initarg :message :reader message))
@@ -96,6 +85,9 @@ Since Linux 2.6.11, the pipe maximum capacity is 65536 bytes")
   ((pointer :initarg :pointer))
   (:default-initargs :pointer nil))
 
+(defmethod initialize-instance :after ((ecore ecore) &key)
+  (setf (gethash ecore %ecore-objects%) t))
+
 (defgeneric ecore-pointer (ecore)
   (:documentation "When not null returns an Ecore_* pointer, it signals a ECORE-ERROR otherwise." ))
 
@@ -104,6 +96,9 @@ Since Linux 2.6.11, the pipe maximum capacity is 65536 bytes")
 
 (defgeneric ecore-del (ecore)
   (:documentation "Removes an ecore object from the ecore main loop"))
+
+(defmethod ecore-del ((ecore ecore))
+  (remhash ecore %ecore-objects%))
 
 (defmacro def-task-callback (func ecore)
   (let ((fname (intern  (symbol-name (gensym))))
@@ -131,3 +126,27 @@ Since Linux 2.6.11, the pipe maximum capacity is 65536 bytes")
 
 (defctype eina-true :int 1)
 (defctype eina-false :int 0)
+
+(defcfun ("ecore_main_loop_begin" main-loop-begin) :void)
+(defcfun ("ecore_main_loop_quit" ecore-loop-quit) :void)
+
+
+(defun ecore-init () 
+  (foreign-funcall "ecore_init" :void))
+
+
+(defun ecore-shutdown ()
+  (loop for obj being the hash-key of %ecore-objects%
+	do (ecore-del obj))
+  (foreign-funcall "ecore_shutdown" :void))
+
+(defmacro in-ecore-loop (&body body)
+  (let ((fname (gensym))
+	(cb (gensym)))
+    `(flet ((,fname (,cb)
+	     (ecore-init)
+	     (funcall ,cb)
+	     (main-loop-begin)
+	     (ecore-shutdown)))
+      (,fname (lambda () ,@body)))))
+

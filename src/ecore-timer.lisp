@@ -131,7 +131,7 @@ Example: We have 2 timers, one that expires in a 2.0s and another that expires i
 		   :pointer (ecore-pointer etimer)
 		   :void))
 
-(defmethod ecore-del ((etimer etimer))
+(defmethod ecore-del :after ((etimer etimer))
   (with-slots ((pointer pointer))
       etimer
     (when (and pointer (not (null-pointer-p pointer))) 
