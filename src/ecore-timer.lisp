@@ -29,28 +29,16 @@
 
 (in-package :ecore)
 
-(defvar *etimer* nil
-  "Varibale used to get the current running timer when inside a timer callback")
-
-(defclass etimer () 
-  ((pointer :initarg :pointer)
-   (timeout :initarg :timeout)
+(defclass etimer (ecore) 
+  ((timeout :initarg :timeout)
    (job :initarg :job
 	:documentation "The job of this timer (as a callback function)")
    (loop-p :reader timer-loop-p :initarg :loop-p
 	   :documentation "When true, the next timeout is relative to the end of the current timer workload"))
   (:default-initargs :loop-p nil))
 
-(defgeneric timer-pointer (etimer)
-  (:documentation "When not null returns an Ecore_Timer pointer, it signals a ECORE-ERROR otherwise." ))
-
 (defgeneric timer-reset (etimer)
   (:documentation "Reset a timer to its full interval This doesn't affect the interval of a timer
-
-- ETIMER a timer instance"))
-
-(defgeneric timer-del (etimer)
-  (:documentation "The data pointer set for the timer when ecore_timer_add was called. NULL is returned if the function is unsuccessful.
 
 - ETIMER a timer instance"))
 
@@ -112,41 +100,38 @@ Example: We have 2 timers, one that expires in a 2.0s and another that expires i
 		   :double (coerce precision 'double-float)
 		   :void))
 
-(defmethod timer-pointer ((etimer etimer))
-  (or (slot-value etimer 'pointer) (signal 'ecore-error :message "Invalid Ecore_Timer pointer")))
-
 (defmethod timer-freeze ((etimer etimer))
   (foreign-funcall "ecore_timer_freeze" 
-		   :pointer (timer-pointer etimer)
+		   :pointer (ecore-pointer etimer)
 		   :void))
 
 (defmethod timer-thaw ((etimer etimer))
   (foreign-funcall "ecore_timer_thaw" 
-		   :pointer (timer-pointer etimer)
+		   :pointer (ecore-pointer etimer)
 		   :void))
 
 (defmethod timer-pending ((etimer etimer))
   (foreign-funcall "ecore_timer_pending_get" 
-		   :pointer (timer-pointer etimer)
+		   :pointer (ecore-pointer etimer)
 		   :double))
 
 (defmethod timer-interval ((etimer etimer))
   (foreign-funcall "ecore_timer_interval_get" 
-		   :pointer (timer-pointer etimer)
+		   :pointer (ecore-pointer etimer)
 		   :double))
 
 (defmethod (setf timer-interval) (interval (etimer etimer))
   (foreign-funcall "ecore_timer_interval_set" 
-		   :pointer (timer-pointer etimer)
+		   :pointer (ecore-pointer etimer)
 		   :double (coerce interval 'double-float) 		   
 		   :void))
 
 (defmethod timer-reset ((etimer etimer))
   (foreign-funcall "ecore_timer_reset"
-		   :pointer (timer-pointer etimer)
+		   :pointer (ecore-pointer etimer)
 		   :void))
 
-(defmethod timer-del ((etimer etimer))
+(defmethod ecore-del ((etimer etimer))
   (with-slots ((pointer pointer))
       etimer
     (when (and pointer (not (null-pointer-p pointer))) 
@@ -157,32 +142,11 @@ Example: We have 2 timers, one that expires in a 2.0s and another that expires i
 
 (defmethod timer-delay ((etimer etimer) delay)
   (foreign-funcall "ecore_timer_delay" 
-		   :pointer (timer-pointer etimer) 
+		   :pointer (ecore-pointer etimer) 
 		   :double (coerce delay 'double-float)
 		   :void))
 
-(defmacro def-timer-callback (func etimer)
-  (let ((fname (intern  (symbol-name (gensym))))
-	(data (gensym))
-	(do-again (gensym))
-	(e (gensym))
-	(g-timer (gensym))
-	(g-func (gensym)))
-    `(let ((,g-timer ,etimer)
-	   (,g-func ,func)) 
-       (defcallback ,fname :int
-	   ((,data :pointer))
-	 (declare (ignore ,data))
-	 (let ((,do-again 1))
-	   (handler-case
-	       (let ((*etimer* ,g-timer))
-		 (funcall ,g-func))
-	     (ecore-error (,e) 
-	       (setf ,do-again 0
-		     (slot-value ,g-timer 'pointer) nil) 
-	       (and (not (typep ,e 'discard)) 
-		    (progn (error ,e)))))
-	   ,do-again)))))
+
 
 (defmethod initialize-instance :after ((etimer etimer) &key)
   (with-slots ((pointer pointer)
@@ -191,7 +155,7 @@ Example: We have 2 timers, one that expires in a 2.0s and another that expires i
 	       (loop-p loop-p))
       etimer
     (flet ((timer-add (timeout timeout-relative-p job)
-	     (let ((cb (def-timer-callback job etimer)))
+	     (let ((cb (def-task-callback job etimer)))
 	       (if timeout-relative-p
 		   (foreign-funcall "ecore_timer_loop_add"	     
 				    :double (coerce timeout 'double-float) 
@@ -209,7 +173,7 @@ Example: We have 2 timers, one that expires in a 2.0s and another that expires i
 (defmacro make-etimer (job &key (timeout 1) loop-p)
   "Creates a timer to call the given function in the given period of time.
 
-- JOB A callback function. To stop the timer signal a LAST-ITERATION condition or call TIMER-DEL. 
+- JOB A callback function. To stop the timer signal a LAST-ITERATION condition or call ECORE-DEL. 
 - TIMEOUT timeout in seconds.
 - LOOP-P when true, the next timeout is relative to the end of the current timer- BODY what will be called on timeout
 

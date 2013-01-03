@@ -108,6 +108,6 @@
 
 (test (timer-del-call :compile-at :definition-time)
   (ecore-test-function (lambda (timer) 
-			 (timer-del timer)
+			 (ecore-del timer)
 			 (ecore-loop-quit)
 			 (is (null (slot-value timer 'ecore::pointer))))))

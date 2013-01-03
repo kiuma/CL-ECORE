@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: src/package.lisp $
+;;; $Header: tests/eore-timer-suite.lisp $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -27,40 +27,56 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(in-package #:cl-user)
+(in-package :ecore-tests)
 
-(defpackage #:ecore
-  (:use :cl :cffi)
-  (:documentation "Ecore binding for CL")
-  (:export #:*ecore-buffer-size*
-	   #:in-ecore-loop
-	   #:ecore-loop-quit
-	   #:ecore-error
-	   #:discard
-	   #:ecore
-	   #:ecore-del
-	   #:*ecore-object*
-	   ;; timer ----
-	   #:etimer
-	   #:timer-interval
-	   #:timer-pending
-	   #:timers-precision
-	   #:timers-precision-setf
-	   #:timer-freeze
-	   #:timer-thaw
-	   #:timer-reset
-	   #:timer-delay
-	   #:make-etimer
-	   ;;events ----
-	   #:defevent
-	   #:make-event-handler
-	   #:ecore-event
-	   #:event-type
-	   #:event-add
-	   #:make-event-filter
-	   ;;poller ----
-	   #:make-poller
-	   #:poller-interval
-	   #:poll-interval
-	   #:setf-poll-interval
-))
+(in-suite :ecore-poller)
+
+(test (make-poller-test :compile-at :definition-time)
+      (let ((x 0)
+	    (start (get-internal-real-time)))
+	(in-ecore-loop 
+	  (make-poller
+		 (lambda () 
+		   (incf x)
+		   (ecore-loop-quit))
+		 :interval 2))
+	(is (=  1 x))
+	(is (< 0 (elapsed start)))))
+
+(test (del-poller-test :compile-at :definition-time)
+  (let ((x 0)
+	(y 0)
+	(obj nil)
+	(start (get-internal-real-time)))
+    (in-ecore-loop 
+      (let ((poller1 (make-poller
+		      (lambda () 
+			(incf x)))))
+	(make-poller
+	 (lambda ()
+	   (setf obj *ecore-object*)
+	   (incf y)
+	   (when (= y 3)
+	     (ecore-loop-quit))))
+	(ecore-del poller1)))
+    (is (=  x 0))
+    (is (= y 3))
+    (is (> (elapsed start) 0))
+    (is (not (null obj)))))
+
+(test (poller-interval-test :compile-at :definition-time)
+  (let ((interval 0)
+	(x 0)
+	(start (get-internal-real-time)))
+    (in-ecore-loop       
+      (make-poller
+       (lambda ()
+	 (incf x)
+	 (setf (poller-interval *ecore-object*) 2)
+	 (when (= x 2)
+	   (setf interval (poller-interval *ecore-object*))
+	   (ecore-loop-quit)))))
+    (is (=  2 x))
+    (is (= 2 interval))
+    (is (< 0 (elapsed start)))))
+#||#

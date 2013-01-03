@@ -32,23 +32,13 @@
 (defvar %event-types% (make-hash-table :test 'equal))
 (defvar %events% (make-hash-table))
 
-(defclass ecore-event ()
-  ((pointer :initform nil)
-   (holder :initform nil)
+(defclass ecore-event (ecore)
+  ((holder :initform nil)
    (type :reader event-type :initarg :type))
   (:default-initargs :type -1))
 
-(defclass event-handler ()
-  ((pointer)
-   (callback :initarg :callback)))
-
-(defgeneric event-handler-del (event-handler)
-  (:documentation "Removes an event handler, once this function
-
-- EVENT-HANDLER The event handler"))
-
-(defvar *event* nil
-  "Varibale used to get the current event when inside an event-handler callback")
+(defclass event-handler (ecore)
+  ((callback :initarg :callback)))
 
 (defmethod initialize-instance :after ((handler event-handler) &key type)
   (with-slots ((pointer pointer)	     
@@ -67,12 +57,12 @@
 			   (,g-event-type :int)
 			   (,g-event :pointer))
 			(declare (ignore ,g-data))	
-			(let ((*event* (gethash (cffi-sys:pointer-address ,g-event) %events%))
+			(let ((*ecore-object* (gethash (cffi-sys:pointer-address ,g-event) %events%))
 			      (,g-continue 1))
 			  (handler-case
 			      (progn		 
-				(unless *event*			
-				  (setf *event* (make-instance 'ecore-event :type ,g-event-type)))
+				(unless *ecore-object*			
+				  (setf *ecore-object* (make-instance 'ecore-event :type ,g-event-type)))
 				(funcall ,g-func))
 			    (discard () (setf ,g-continue 0)))
 			  ,g-continue))))))
@@ -88,12 +78,12 @@
   "Creates an event handler that will havle the event with the given callback.
 
 Inside the callback you can access the current event type with EVENT-TYPE method of
-the current event handler given by *EVENT-HANDLER*"
+the current event handler given by *ECORE-OBJECT* variable"
   `(make-instance 'event-handler 
 		  :type ,event-type
 		  :callback ,callback))
 
-(defmethod event-handler-del ((handler event-handler))
+(defmethod ecore-del ((handler event-handler))
   (with-slots ((pointer pointer))
       handler
     (when pointer
@@ -104,9 +94,6 @@ the current event handler given by *EVENT-HANDLER*"
 
 (defgeneric event-add (event)
   (:documentation "Adds an event to the event queue."))
-
-(defgeneric event-del (event)
-  (:documentation "Deletes an event from the event queue."))
 
 (defmacro defevent (event-name superclasses slots &rest rest)
   `(progn 
@@ -155,7 +142,7 @@ the current event handler given by *EVENT-HANDLER*"
 	      holder event-holder)	
 	(setf (gethash (cffi-sys:pointer-address event-holder) %events%) event)))))
 
-(defmethod event-del ((event ecore-event))
+(defmethod ecore-del ((event ecore-event))
   (with-slots ((pointer pointer))
       event
     (when pointer
@@ -164,11 +151,8 @@ the current event handler given by *EVENT-HANDLER*"
 		       :pointer))))
 
 
-(defclass event-filter () 
-  ((pointer :initarg :pointer)))
-
-(defgeneric event-filter-del (filter)
-  (:documentation "Deletes an event filter. See MAKE-EVENT-FILTER"))
+(defclass event-filter (ecore) 
+  ())
 
 (defun make-event-filter (&key before-event-cb after-event-cb)
   "Add a filter the current event queue.
@@ -178,7 +162,7 @@ To discard the event, signal a DISCARD condition.
 
 - AFTER-EVENT-CB a callback ther is fired after event handlers are done.
 
-Current event is accessible throught the *EVENT-VARIABLE*"
+Current event is accessible throught the *ECORE-OBJECT* variable"
 
   (macrolet ((make-start-cb ()
 	       (let ((fname (intern  (symbol-name (gensym))))
@@ -202,14 +186,14 @@ Current event is accessible throught the *EVENT-VARIABLE*"
 			 (,g-event-type :int)
 			 (,g-event-pointer :pointer))			
 		      (declare (ignore ,g-data))		     
-		      (let ((*event* (gethash (cffi-sys:pointer-address ,g-event-pointer) %events%))
+		      (let ((*ecore-object* (gethash (cffi-sys:pointer-address ,g-event-pointer) %events%))
 			    (,g-continue 1))
 			(handler-case
 			    (progn		 
-			      (unless *event*		
-				(setf *event* (make-instance 'ecore-event :type ,g-event-type)
+			      (unless *ecore-object*		
+				(setf *ecore-object* (make-instance 'ecore-event :type ,g-event-type)
 				      (gethash (cffi-sys:pointer-address ,g-event-pointer) %events%) 
-				      *event*))
+				      *ecore-object*))
 			      
 			      (setf (mem-ref ,g-loop-data :long )
 				    (cffi-sys:pointer-address ,g-event-pointer))
@@ -226,7 +210,7 @@ Current event is accessible throught the *EVENT-VARIABLE*"
 			  ((,user-data :pointer)
 			   (,func-data :pointer))			
 			(declare (ignore ,user-data))			 
-			(let ((*event* (gethash (mem-ref ,func-data :long) %events%)))
+			(let ((*ecore-object* (gethash (mem-ref ,func-data :long) %events%)))
 			  (funcall ,g-func)))))))
     (make-instance 'event-filter
 		   :pointer
@@ -236,7 +220,7 @@ Current event is accessible throught the *EVENT-VARIABLE*"
 				    :pointer (or (and after-event-cb (get-callback (make-after-cb after-event-cb))) (null-pointer))
 				    :pointer))))
 
-(defmethod event-filter-del ((filter event-filter))
+(defmethod ecore-del ((filter event-filter))
   (with-slots ((pointer pointer))
       filter
     (when pointer

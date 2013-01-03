@@ -41,6 +41,15 @@
 (defcfun ("ecore_shutdown" ecore-shutdown) :void)
  
 
+(defvar *ecore-object* nil
+  "Varibale used to get the current Ecore object when inside a timer callback")
+
+(defvar *ecore-buffer-size* 4096
+  "Should be kept as a multiple of page size. 
+The default of 4096 is the system page size of a i386.
+Since Linux 2.6.11, the pipe maximum capacity is 65536 bytes")
+
+#|
 (defvar *callback-data*)
 (defvar *callback-event-type*)
 (defvar *callback-event*)
@@ -60,7 +69,7 @@
 	    (*callback-event-type* ,event-type)
 	    (*callback-event* ,event))
 	,@body))))
-
+|#  
 (defmacro in-ecore-loop (&body body)
   (let ((fname (gensym))
 	(cb (gensym)))
@@ -82,6 +91,43 @@
   (:documentation "- Inside a timer callback function, signal this condition to termiate the timer gracefully.
 
 - For an EVENT-HANDLER callback, it will cease processing handlers for that particular event, so all handler set to handle that event type that have not already been called, will not be."))
+
+(defclass ecore ()
+  ((pointer :initarg :pointer))
+  (:default-initargs :pointer nil))
+
+(defgeneric ecore-pointer (ecore)
+  (:documentation "When not null returns an Ecore_* pointer, it signals a ECORE-ERROR otherwise." ))
+
+(defmethod ecore-pointer ((ecore ecore))
+  (or (slot-value ecore 'pointer) (signal 'ecore-error :message "Invalid ecore pointer")))
+
+(defgeneric ecore-del (ecore)
+  (:documentation "Removes an ecore object from the ecore main loop"))
+
+(defmacro def-task-callback (func ecore)
+  (let ((fname (intern  (symbol-name (gensym))))
+	(data (gensym))
+	(do-again (gensym))
+	(e (gensym))
+	(g-ecore (gensym))
+	(g-func (gensym)))
+    `(let ((,g-ecore ,ecore)
+	   (,g-func ,func)) 
+       (defcallback ,fname :int
+	   ((,data :pointer))
+	 (declare (ignore ,data))
+	 (let ((,do-again 1))
+	   (handler-case
+	       (let ((*ecore-object* ,g-ecore))
+		 (funcall ,g-func))
+	     (ecore-error (,e) 
+	       (setf ,do-again 0
+		     (slot-value ,g-ecore 'pointer) nil) 
+	       (and (not (typep ,e 'discard)) 
+		    (progn (error ,e)))))
+	   ,do-again)))))
+
 
 (defctype eina-true :int 1)
 (defctype eina-false :int 0)

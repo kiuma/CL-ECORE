@@ -37,8 +37,7 @@
       (defevent quit-event () (x))
       (make-event-handler (event-type 'quit-event) 
 			  (lambda ()
-			    (format t "Fire of QUIT-EVENT event~%")
-			    (setf event *event*)
+			    (setf event *ecore-object*)
 			    (ecore-loop-quit)))
       (event-add (make-instance 'quit-event)))
     (is (not (null event))))) 
@@ -50,11 +49,11 @@
       (defevent quit-event () (x))
       (make-event-handler (event-type 'quit-event) 
 			  (lambda ()			    
-			    (setf event-p *event*)
+			    (setf event-p *ecore-object*)
 			    (ecore-loop-quit)))
       (make-event-filter :before-event-cb (lambda () 
-					    (when (and *event* 
-						       (eql (event-type *event*)
+					    (when (and *ecore-object* 
+						       (eql (event-type *ecore-object*)
 							    (event-type 'quit-event)))
 					      (setf filter-p t))))
       (event-add (make-instance 'quit-event)))
@@ -70,16 +69,16 @@
       (defevent quit-event () (x))
       (make-event-handler (event-type 'quit-event) 
 			  (lambda ()			    
-			    (setf event-p *event*)))
+			    (setf event-p *ecore-object*)))
       (make-event-filter :before-event-cb (lambda () 
-					    (when (and *event* 
-						       (eql (event-type *event*)
+					    (when (and *ecore-object* 
+						       (eql (event-type *ecore-object*)
 							    (event-type 'quit-event)))
 					      (setf filter-p t)
 					      (signal 'discard)))
 			 :after-event-cb (lambda () 
-					   (when (and *event* 
-						       (eql (event-type *event*)
+					   (when (and *ecore-object* 
+						       (eql (event-type *ecore-object*)
 							    (event-type 'quit-event)))
 					      (setf event-on-after-filter-p t))
 					   (ecore-loop-quit)))
