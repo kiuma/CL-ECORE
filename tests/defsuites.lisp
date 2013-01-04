@@ -37,3 +37,5 @@
 (def-suite :ecore-event :in :ecore)
 
 (def-suite :ecore-poller :in :ecore)
+
+(def-suite :ecore-idler :in :ecore)

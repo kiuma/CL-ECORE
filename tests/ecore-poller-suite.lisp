@@ -37,8 +37,7 @@
 	(in-ecore-loop 
 	  (make-poller
 		 (lambda () 
-		   (incf x)
-		   ;(ecore-del *ecore-object*)
+		   (incf x)		   
 		   (ecore-loop-quit))
 		 :interval 2))
 	(is (=  1 x))

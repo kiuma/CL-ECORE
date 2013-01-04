@@ -37,7 +37,8 @@
 				     (:file "ecore" :depends-on ("packages"))
                                      (:file "ecore-timer" :depends-on ("ecore"))
 				     (:file "ecore-event" :depends-on ("ecore"))
-				     (:file "ecore-poller" :depends-on ("ecore"))))))
+				     (:file "ecore-poller" :depends-on ("ecore"))
+				     (:file "ecore-idler" :depends-on ("ecore"))))))
 
 
 (defmethod asdf:perform ((op asdf:load-op) (sys (eql (asdf:find-system :cl-ecore))))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: src/package.lisp $
+;;; $Header: tests/eore-timer-suite.lisp $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -27,42 +27,51 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(in-package #:cl-user)
+(in-package :ecore-tests)
 
-(defpackage #:ecore
-  (:use :cl :cffi)
-  (:documentation "Ecore binding for CL")
-  (:export #:*ecore-buffer-size*
-	   #:in-ecore-loop
-	   #:ecore-loop-quit
-	   #:ecore-error
-	   #:discard
-	   #:ecore
-	   #:ecore-del
-	   #:*ecore-object*
-	   ;; timer ----
-	   #:etimer
-	   #:timer-interval
-	   #:timer-pending
-	   #:timers-precision
-	   #:timers-precision-setf
-	   #:timer-freeze
-	   #:timer-thaw
-	   #:timer-reset
-	   #:timer-delay
-	   #:make-etimer
-	   ;;events ----
-	   #:defevent
-	   #:make-event-handler
-	   #:ecore-event
-	   #:event-type
-	   #:event-add
-	   #:make-event-filter
-	   ;;poller ----
-	   #:make-poller
-	   #:poller-interval
-	   #:poll-interval
-	   #:setf-poll-interval
-	   ;;idler ----
-	   #:make-idler
-))
+(in-suite :ecore-idler)
+
+(test (make-idle-enterer-test :compile-at :definition-time)
+      (let ((x 0)
+	    (start (get-internal-real-time)))
+	(in-ecore-loop 
+	  (make-poller
+		 (lambda () 
+		   (incf x)		   
+		   (signal 'discard)))
+	  (make-idler (lambda () 
+			(incf x)
+			(when (> x 1)
+			  (ecore-loop-quit)))))	
+	(is (< 1 x))
+	(is (< 0 (elapsed start)))))
+
+(test (make-idle-exiter-test :compile-at :definition-time)
+      (let ((x 0)
+	    (start (get-internal-real-time)))
+	(in-ecore-loop 
+	 (make-idler (lambda () 
+		       (incf x)) :idler-type :exiter)
+	  (make-poller
+		 (lambda () 
+		   (incf x)		   
+		   (signal 'discard)))
+	  (make-idler (lambda () 
+			(incf x)
+			(when (> x 1)
+			  (ecore-loop-quit)))))	
+	(is (< 2 x))
+	(is (< 0 (elapsed start)))))
+
+(test (make-idler-test :compile-at :definition-time)
+      (let ((x 0)
+	    (start (get-internal-real-time)))
+	(in-ecore-loop 	 
+	 (make-idler
+		 (lambda () 
+		   (incf x)	
+		   (when (= x 4)
+		     (ecore-loop-quit)))
+		 :idler-type nil))	
+	(is (= 4 x))
+	(is (< 0 (elapsed start)))))
