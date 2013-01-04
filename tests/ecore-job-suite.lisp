@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: cl-efl.asd $
+;;; $Header: tests/eore-job-suite.lisp $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -27,23 +27,34 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(asdf:defsystem :cl-ecore
-  :name "cl-ecore"
-  :author "Andrea Chiumenti"
-  :description "Bindings for ECORE enlightenment library."
-  :depends-on (:cffi)
-  :components ((:module src
-                        :components ((:file "packages")
-				     (:file "ecore" :depends-on ("packages"))
-                                     (:file "ecore-timer" :depends-on ("ecore"))
-				     (:file "ecore-event" :depends-on ("ecore"))
-				     (:file "ecore-poller" :depends-on ("ecore"))
-				     (:file "ecore-idler" :depends-on ("ecore"))
-				     (:file "ecore-job" :depends-on ("ecore"))))))
+(in-package :ecore-tests)
 
+(in-suite :ecore-job)
 
-(defmethod asdf:perform ((op asdf:load-op) (sys (eql (asdf:find-system :cl-ecore))))
-  (asdf:oos 'asdf:test-op :cl-ecore-tests))
+(test (make-job-test :compile-at :definition-time)
+      (let ((x 0)
+	    (start (get-internal-real-time)))
+	(in-ecore-loop 
+	  (make-job
+		 (lambda () 
+		   (incf x)		   
+		   (ecore-loop-quit))))	
+	(is (= 1 x))
+	(is (< 0 (elapsed start)))))
 
-(defmethod asdf:operation-done-p ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore))))
-  nil)
+(test (make-job-order-test :compile-at :definition-time)
+      (let ((x 0)
+	    (job1 nil)
+	    (start (get-internal-real-time)))
+	(in-ecore-loop 
+	  (make-job
+		 (lambda () 
+		   (incf x)))
+	  (make-job
+		 (lambda () 
+		   (setf job1 x)
+		   (ecore-loop-quit))))	
+	(is (= 1 x))
+	(is (= 1 job1))
+	(is (< 0 (elapsed start)))))
+

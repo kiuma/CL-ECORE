@@ -43,12 +43,14 @@
 				     (:file "ecore-poller-suite" 
 				      :depends-on ("packages" "defsuites" "utils"))
 				     (:file "ecore-idler-suite" 
+				      :depends-on ("packages" "defsuites" "utils"))
+				     (:file "ecore-job-suite" 
 				      :depends-on ("packages" "defsuites" "utils"))))))
 
 
 (defmethod asdf:perform ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore-tests))))
   (asdf:oos 'asdf:load-op :cl-ecore-tests)
-  (funcall (intern (symbol-name '#:run!) '#:5am) :ecore))
+  (time (funcall (intern (symbol-name '#:run!) '#:5am) :ecore)))
 
 (defmethod asdf:operation-done-p ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore-tests))))
   nil)

@@ -39,3 +39,5 @@
 (def-suite :ecore-poller :in :ecore)
 
 (def-suite :ecore-idler :in :ecore)
+
+(def-suite :ecore-job :in :ecore)

@@ -65,4 +65,6 @@
 	   #:setf-poll-interval
 	   ;;idler ----
 	   #:make-idler
+	   ;;job ----
+	   #:make-job
 ))
