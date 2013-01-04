@@ -41,3 +41,8 @@
 (def-suite :ecore-idler :in :ecore)
 
 (def-suite :ecore-job :in :ecore)
+
+(def-suite :ecore-thread :in :ecore)
+
+
+

@@ -46,7 +46,8 @@
       (setf pointer
 	    (job-add (lambda () 
 		       (unwind-protect
-			    (funcall callback)
+			    (let ((*ecore-object* ecore-job))
+			      (funcall callback))
 			 (setf pointer nil))))))))
 
 

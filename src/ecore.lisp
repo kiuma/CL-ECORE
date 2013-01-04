@@ -43,6 +43,9 @@
 (defvar *ecore-object* nil
   "Varibale used to get the current Ecore object when inside a timer callback")
 
+(defvar *ecore-buffer* nil
+  "Varibale used to get datain pipe and socket callbacks")
+
 (defvar *ecore-buffer-size* 4096
   "Should be kept as a multiple of page size. 
 The default of 4096 is the system page size of a i386.
@@ -86,17 +89,21 @@ Since Linux 2.6.11, the pipe maximum capacity is 65536 bytes")
 
 (defclass ecore ()
   ((pointer :initarg :pointer)
-   (delete-before-main-loop-quit :initarg :delete-before-main-loop-quit))
-  (:default-initargs :pointer nil :delete-before-main-loop-quit nil))
+   (delete-before-main-loop-quit :initarg :delete-before-main-loop-quit)
+   (do-not-hash-p :initarg :do-not-hash)
+   (data :initarg :data))
+  (:default-initargs :pointer nil :data nil :do-not-hash nil :delete-before-main-loop-quit nil))
 
 (defclass ecore-invalid () ())
 
 (defmethod initialize-instance :after ((ecore ecore) &key)
-  (with-slots ((before delete-before-main-loop-quit))
+  (with-slots ((before delete-before-main-loop-quit)
+	       (do-not-hash-p do-not-hash-p))
       ecore    
-    (setf (gethash ecore (if before
-			     *ecore-objects-before*
-			     *ecore-objects-after*)) t)))
+    (unless do-not-hash-p
+      (setf (gethash ecore (if before
+			       *ecore-objects-before*
+			       *ecore-objects-after*)) t))))
 
 (defgeneric ecore-pointer (ecore)
   (:documentation "When not null returns an Ecore_* pointer, it signals a ECORE-ERROR otherwise." ))
@@ -113,11 +120,13 @@ Since Linux 2.6.11, the pipe maximum capacity is 65536 bytes")
 |#
 
 (defmethod ecore-del ((ecore ecore))
-  (with-slots ((before delete-before-main-loop-quit))
+  (with-slots ((before delete-before-main-loop-quit)
+	       (do-not-hash-p do-not-hash-p))
       ecore
-    (remhash ecore (if before
-		       *ecore-objects-before*
-		       *ecore-objects-after*))))
+    (unless do-not-hash-p
+      (remhash ecore (if before
+			 *ecore-objects-before*
+			 *ecore-objects-after*)))))
 
 (defmacro def-task-callback (func ecore)
   (let ((fname (intern  (symbol-name (gensym))))

@@ -31,7 +31,7 @@
   :name "cl-ecore"
   :author "Andrea Chiumenti"
   :description "Bindings for ECORE enlightenment library."
-  :depends-on (:cffi)
+  :depends-on (:cffi :bordeaux-threads)
   :components ((:module src
                         :components ((:file "packages")
 				     (:file "ecore" :depends-on ("packages"))
@@ -39,7 +39,9 @@
 				     (:file "ecore-event" :depends-on ("ecore"))
 				     (:file "ecore-poller" :depends-on ("ecore"))
 				     (:file "ecore-idler" :depends-on ("ecore"))
-				     (:file "ecore-job" :depends-on ("ecore"))))))
+				     (:file "ecore-job" :depends-on ("ecore"))
+				     (:file "ecore-pipe" :depends-on ("ecore"))
+				     (:file "ecore-thread" :depends-on ("ecore" "ecore-job" "ecore-pipe"))))))
 
 
 (defmethod asdf:perform ((op asdf:load-op) (sys (eql (asdf:find-system :cl-ecore))))

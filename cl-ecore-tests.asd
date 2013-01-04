@@ -45,6 +45,8 @@
 				     (:file "ecore-idler-suite" 
 				      :depends-on ("packages" "defsuites" "utils"))
 				     (:file "ecore-job-suite" 
+				      :depends-on ("packages" "defsuites" "utils"))
+				     (:file "ecore-thread-suite" 
 				      :depends-on ("packages" "defsuites" "utils"))))))
 
 

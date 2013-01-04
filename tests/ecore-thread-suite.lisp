@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: src/package.lisp $
+;;; $Header: tests/eore-thread-suite.lisp $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -27,47 +27,21 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(in-package #:cl-user)
+(in-package :ecore-tests)
 
-(defpackage #:ecore
-  (:use :cl :cffi)
-  (:documentation "Ecore binding for CL")
-  (:export #:*ecore-buffer-size*
-	   #:in-ecore-loop
-	   #:ecore-loop-quit
-	   #:ecore-error
-	   #:discard
-	   #:ecore
-	   #:ecore-del
-	   #:*ecore-object*
-	   ;; timer ----
-	   #:etimer
-	   #:timer-interval
-	   #:timer-pending
-	   #:timers-precision
-	   #:timers-precision-setf
-	   #:timer-freeze
-	   #:timer-thaw
-	   #:timer-reset
-	   #:timer-delay
-	   #:make-etimer
-	   ;;events ----
-	   #:defevent
-	   #:make-event-handler
-	   #:ecore-event
-	   #:event-type
-	   #:event-add
-	   #:make-event-filter
-	   ;;poller ----
-	   #:make-poller
-	   #:poller-interval
-	   #:poll-interval
-	   #:setf-poll-interval
-	   ;;idler ----
-	   #:make-idler
-	   ;;job ----
-	   #:make-job
-	   ;;thread
-	   #:make-thread
-	   #:*thread-data*
-))
+(in-suite :ecore-thread)
+
+(test (make-thread-test :compile-at :definition-time)
+      (let ((x 0)
+	    (start (get-internal-real-time)))
+	(in-ecore-loop 
+	  (make-thread
+		 (lambda () 
+		   (setf *thread-data* 1))
+		 :on-end (lambda () 
+			   (setf x *thread-data*)
+			   (ecore-loop-quit))))	
+	(is (= 1 x))
+	(is (< 0 (elapsed start)))))
+
+

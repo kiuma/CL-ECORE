@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: src/package.lisp $
+;;; $Header: src/ecore-job.lisp $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -27,47 +27,39 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(in-package #:cl-user)
+(in-package :ecore)
 
-(defpackage #:ecore
-  (:use :cl :cffi)
-  (:documentation "Ecore binding for CL")
-  (:export #:*ecore-buffer-size*
-	   #:in-ecore-loop
-	   #:ecore-loop-quit
-	   #:ecore-error
-	   #:discard
-	   #:ecore
-	   #:ecore-del
-	   #:*ecore-object*
-	   ;; timer ----
-	   #:etimer
-	   #:timer-interval
-	   #:timer-pending
-	   #:timers-precision
-	   #:timers-precision-setf
-	   #:timer-freeze
-	   #:timer-thaw
-	   #:timer-reset
-	   #:timer-delay
-	   #:make-etimer
-	   ;;events ----
-	   #:defevent
-	   #:make-event-handler
-	   #:ecore-event
-	   #:event-type
-	   #:event-add
-	   #:make-event-filter
-	   ;;poller ----
-	   #:make-poller
-	   #:poller-interval
-	   #:poll-interval
-	   #:setf-poll-interval
-	   ;;idler ----
-	   #:make-idler
-	   ;;job ----
-	   #:make-job
-	   ;;thread
-	   #:make-thread
-	   #:*thread-data*
-))
+(defvar *wakeup* (make-array 1 :element-type '(unsigned-byte 8) :initial-element 0))
+
+(defvar *thread-data*)
+
+(defclass ecore-thread (ecore-job) 
+  ())
+
+(defmacro %make-thread (job data)
+  (let ((g-job (gensym))
+	(g-data (gensym)))
+    `(let ((,g-job ,job)
+	   (,g-data ,data)) 
+       (make-instance 'ecore-thread
+		      :callback ,g-job
+		      :data ,g-data))))
+
+(defun make-thread (job &key on-end initial-data)
+  "Schedule a task to run in a parallel thread to avoid locking the main loop.
+
+- JOB blocking function
+- ON-END Notifies main loop when JOB has completed"
+  (let ((pipe (and on-end (make-pipe (lambda ()
+				       (let ((*thread-data* (slot-value *ecore-object* 'data)))
+					 (funcall on-end))
+				       (ecore-del *ecore-object*))))))
+    (%make-thread (lambda () 
+		    (let ((*thread-data* initial-data))
+		      (bt:make-thread (lambda ()  
+					(funcall job)
+					(when pipe
+					  (setf (slot-value pipe 'data) *thread-data*)
+					  (pipe-write pipe *wakeup*))))))
+		  initial-data)))
+
