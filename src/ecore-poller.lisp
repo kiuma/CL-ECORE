@@ -33,7 +33,8 @@
 ;(defvar %pipe-buffer% (make-array *ecore-buffer-size* :element-type '(unsigned-byte 8)))
 
 (defclass epoller (ecore)
-  ((callback :initarg :callback)))
+  ((callback :initarg :callback))
+  (:default-initargs :delete-before-main-loop-quit t))
 
 (defgeneric poller-interval (poller)
   (:documentation "Returns the interval, in ticks, that poller polls at."))

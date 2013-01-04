@@ -38,7 +38,7 @@
 	  (make-poller
 		 (lambda () 
 		   (incf x)
-		   (ecore-del *ecore-object*)
+		   ;(ecore-del *ecore-object*)
 		   (ecore-loop-quit))
 		 :interval 2))
 	(is (=  1 x))
@@ -53,16 +53,18 @@
       (let ((poller1 (make-poller
 		      (lambda () 
 			(incf x)))))
+	
 	(make-poller
 	 (lambda ()
 	   (setf obj *ecore-object*)
 	   (incf y)
+	   (when (= 1 x)
+	     (ecore-del poller1))
 	   (when (= y 3)
-	     (ecore-loop-quit))))
-	(ecore-del poller1)))
-    (is (=  x 0))
-    (is (= y 3))
-    (is (> (elapsed start) 0))
+	     (ecore-loop-quit))))))
+    (is (= 1 x))
+    (is (= 3 y))
+    (is (< 0 (elapsed start)))
     (is (not (null obj)))))
 
 (test (poller-interval-test :compile-at :definition-time)
@@ -80,3 +82,4 @@
     (is (=  2 x))
     (is (= 2 interval))
     (is (< 0 (elapsed start)))))
+

@@ -35,7 +35,7 @@
 	:documentation "The job of this timer (as a callback function)")
    (loop-p :reader timer-loop-p :initarg :loop-p
 	   :documentation "When true, the next timeout is relative to the end of the current timer workload"))
-  (:default-initargs :loop-p nil))
+  (:default-initargs :loop-p nil :delete-before-main-loop-quit t))
 
 (defgeneric timer-reset (etimer)
   (:documentation "Reset a timer to its full interval This doesn't affect the interval of a timer

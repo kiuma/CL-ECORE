@@ -29,13 +29,20 @@
 
 (in-package :ecore)
 
+#|
 (define-foreign-library libecore
-    (:unix "libecore.so")
-    (t (:default "libecore")))
+  (:unix "libecore.so")
+  (:search-path #P"/home/kiuma/C/ecore-1.7.4/src/lib/ecore/.libs/")
+  (t (:default "libecore")))
+|#
+(define-foreign-library libecore
+  (:unix "/home/kiuma/C/ecore-1.7.4/src/lib/ecore/.libs/libecore.so"))
 
 (use-foreign-library libecore)
  
-(defvar %ecore-objects% (make-hash-table))
+(defvar *ecore-objects-before* (make-hash-table))
+
+(defvar *ecore-objects-after* (make-hash-table))
 
 (defvar *ecore-object* nil
   "Varibale used to get the current Ecore object when inside a timer callback")
@@ -82,11 +89,18 @@ Since Linux 2.6.11, the pipe maximum capacity is 65536 bytes")
 - For an EVENT-HANDLER callback, it will cease processing handlers for that particular event, so all handler set to handle that event type that have not already been called, will not be."))
 
 (defclass ecore ()
-  ((pointer :initarg :pointer))
-  (:default-initargs :pointer nil))
+  ((pointer :initarg :pointer)
+   (delete-before-main-loop-quit :initarg :delete-before-main-loop-quit))
+  (:default-initargs :pointer nil :delete-before-main-loop-quit nil))
+
+(defclass invalid-ecore () ())
 
 (defmethod initialize-instance :after ((ecore ecore) &key)
-  (setf (gethash ecore %ecore-objects%) t))
+  (with-slots ((before delete-before-main-loop-quit))
+      ecore    
+    (setf (gethash ecore (if before
+			     *ecore-objects-before*
+			     *ecore-objects-after*)) t)))
 
 (defgeneric ecore-pointer (ecore)
   (:documentation "When not null returns an Ecore_* pointer, it signals a ECORE-ERROR otherwise." ))
@@ -97,8 +111,15 @@ Since Linux 2.6.11, the pipe maximum capacity is 65536 bytes")
 (defgeneric ecore-del (ecore)
   (:documentation "Removes an ecore object from the ecore main loop"))
 
+(defmethod ecore-del :after ((ecore ecore))
+  (change-class ecore 'invalid-ecore))
+
 (defmethod ecore-del ((ecore ecore))
-  (remhash ecore %ecore-objects%))
+  (with-slots ((before delete-before-main-loop-quit))
+      ecore
+    (remhash ecore (if before
+		       *ecore-objects-before*
+		       *ecore-objects-after*))))
 
 (defmacro def-task-callback (func ecore)
   (let ((fname (intern  (symbol-name (gensym))))
@@ -128,17 +149,24 @@ Since Linux 2.6.11, the pipe maximum capacity is 65536 bytes")
 (defctype eina-false :int 0)
 
 (defcfun ("ecore_main_loop_begin" main-loop-begin) :void)
-(defcfun ("ecore_main_loop_quit" ecore-loop-quit) :void)
-
 
 (defun ecore-init () 
   (foreign-funcall "ecore_init" :void))
 
 
 (defun ecore-shutdown ()
-  (loop for obj being the hash-key of %ecore-objects%
+  (loop for obj being the hash-key of *ecore-objects-before*
+	do (ecore-del obj))
+  (loop for obj being the hash-key of *ecore-objects-after*
 	do (ecore-del obj))
   (foreign-funcall "ecore_shutdown" :void))
+
+(defun ecore-loop-quit ()
+  (loop for obj being the hash-key of *ecore-objects-before*
+	do (ecore-del obj))
+  (foreign-funcall "ecore_main_loop_quit" :void)
+  #|(loop for obj being the hash-key of *ecore-objects-after*
+	do (ecore-del obj))|#)
 
 (defmacro in-ecore-loop (&body body)
   (let ((fname (gensym))
