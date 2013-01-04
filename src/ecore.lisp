@@ -29,14 +29,10 @@
 
 (in-package :ecore)
 
-#|
 (define-foreign-library libecore
   (:unix "libecore.so")
-  (:search-path #P"/home/kiuma/C/ecore-1.7.4/src/lib/ecore/.libs/")
   (t (:default "libecore")))
-|#
-(define-foreign-library libecore
-  (:unix "/home/kiuma/C/ecore-1.7.4/src/lib/ecore/.libs/libecore.so"))
+
 
 (use-foreign-library libecore)
  
@@ -93,7 +89,7 @@ Since Linux 2.6.11, the pipe maximum capacity is 65536 bytes")
    (delete-before-main-loop-quit :initarg :delete-before-main-loop-quit))
   (:default-initargs :pointer nil :delete-before-main-loop-quit nil))
 
-(defclass invalid-ecore () ())
+(defclass ecore-invalid () ())
 
 (defmethod initialize-instance :after ((ecore ecore) &key)
   (with-slots ((before delete-before-main-loop-quit))
@@ -111,8 +107,10 @@ Since Linux 2.6.11, the pipe maximum capacity is 65536 bytes")
 (defgeneric ecore-del (ecore)
   (:documentation "Removes an ecore object from the ecore main loop"))
 
+#|
 (defmethod ecore-del :after ((ecore ecore))
-  (change-class ecore 'invalid-ecore))
+  (change-class ecore 'ecore-invalid))
+|#
 
 (defmethod ecore-del ((ecore ecore))
   (with-slots ((before delete-before-main-loop-quit))
