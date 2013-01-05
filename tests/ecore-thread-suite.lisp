@@ -44,4 +44,44 @@
 	(is (= 1 x))
 	(is (< 0 (elapsed start)))))
 
+(test (thread-notify-test :compile-at :definition-time)
+      (let ((x 0)
+	    (start (get-internal-real-time)))
+	(in-ecore-loop 
+	  (make-thread
+		 (lambda () 
+		   (setf *thread-data* 1)
+		   (ecore-notify *ecore-object*))
+		 :on-end (lambda () 
+			   (ecore-loop-quit))
+		 :on-notify (lambda ()
+			      (setf x *thread-data*))))	
+	(is (= 1 x))
+	(is (< 0 (elapsed start)))))
+
+
+(test (thread-limit-test :compile-at :definition-time)
+      (let ((x 0)
+	    (concurrent-threads 0)
+	    (pending-threads 0)
+	    (start (get-internal-real-time)))
+	(in-ecore-loop
+	 (dotimes (i (* 2 *max-running-threads*))
+	   (make-thread
+	    (lambda () 
+	      (ecore-notify *ecore-object*))
+	    :on-end (lambda () 
+		      (incf x)
+		      (when (= x (* 2 *max-running-threads*))
+			(ecore-loop-quit)))
+	    :on-notify (lambda ()
+			 (setf concurrent-threads 
+			       (max concurrent-threads (ecore-running-threads))
+			       pending-threads 
+			       (max pending-threads (ecore-pending-threads)))))))	
+	(is (= (* 2 *max-running-threads*) x))
+	(is (= *max-running-threads* concurrent-threads))
+	(is (< 0 pending-threads))
+	(is (< 0 (elapsed start)))))
+
 

@@ -51,6 +51,13 @@
 The default of 4096 is the system page size of a i386.
 Since Linux 2.6.11, the pipe maximum capacity is 65536 bytes")
 
+(defvar *max-running-threads* 16
+  "This is the maximum number of threads that may be running at the same time.
+Threads creaded wile this limit is reached will be enqueued and run when the number decreases.
+
+Making this number to high may have a drastic negative impact.")
+
+(defvar *thread-queue* (make-instance 'arnesi:queue))
 #|
 (defvar *callback-data*)
 (defvar *callback-event-type*)

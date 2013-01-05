@@ -31,7 +31,7 @@
   :name "cl-ecore"
   :author "Andrea Chiumenti"
   :description "Bindings for ECORE enlightenment library."
-  :depends-on (:cffi :bordeaux-threads)
+  :depends-on (:cffi :bordeaux-threads :arnesi)
   :components ((:module src
                         :components ((:file "packages")
 				     (:file "ecore" :depends-on ("packages"))

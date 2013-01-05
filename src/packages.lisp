@@ -33,6 +33,7 @@
   (:use :cl :cffi)
   (:documentation "Ecore binding for CL")
   (:export #:*ecore-buffer-size*
+	   #:*ecore-buffer*
 	   #:in-ecore-loop
 	   #:ecore-loop-quit
 	   #:ecore-error
@@ -76,6 +77,11 @@
 	   #:pipe-thaw
 	   #:pipe-wait
 	   ;;thread
+	   #:*max-running-threads*
 	   #:make-thread
+	   #:thread-running-p
 	   #:*thread-data*
+	   #:ecore-notify
+	   #:ecore-running-threads
+	   #:ecore-pending-threads
 ))
