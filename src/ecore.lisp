@@ -58,26 +58,14 @@ Threads creaded wile this limit is reached will be enqueued and run when the num
 Making this number to high may have a drastic negative impact.")
 
 (defvar *thread-queue* (make-instance 'arnesi:queue))
-#|
-(defvar *callback-data*)
-(defvar *callback-event-type*)
-(defvar *callback-event*)
 
+#|
 (defconstant event-signal-user 1)
 (defconstant event-signal-hup 2)
 (defconstant event-signal-exit 3)
 (defconstant event-signal-power 4)
 (defconstant event-signal-realtime 5)
 
-(defmacro defecore-callback (fname &body body)
-  (let ((data (gensym))
-	(event-type (gensym))
-	(event (gensym)))
-    `(defcallback ,fname :int ((,data :pointer) (,event-type :int) (,event :pointer))
-      (let ((*callback-data* ,data)
-	    (*callback-event-type* ,event-type)
-	    (*callback-event* ,event))
-	,@body))))
 |#  
 
 
@@ -120,11 +108,6 @@ Making this number to high may have a drastic negative impact.")
 
 (defgeneric ecore-del (ecore)
   (:documentation "Removes an ecore object from the ecore main loop"))
-
-#|
-(defmethod ecore-del :after ((ecore ecore))
-  (change-class ecore 'ecore-invalid))
-|#
 
 (defmethod ecore-del ((ecore ecore))
   (with-slots ((before delete-before-main-loop-quit)
@@ -178,9 +161,7 @@ Making this number to high may have a drastic negative impact.")
 (defun ecore-loop-quit ()
   (loop for obj being the hash-key of *ecore-objects-before*
 	do (ecore-del obj))
-  (foreign-funcall "ecore_main_loop_quit" :void)
-  #|(loop for obj being the hash-key of *ecore-objects-after*
-	do (ecore-del obj))|#)
+  (foreign-funcall "ecore_main_loop_quit" :void))
 
 (defmacro in-ecore-loop (&body body)
   (let ((fname (gensym))
