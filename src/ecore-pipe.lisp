@@ -93,7 +93,7 @@ Add a callback that will be called when the file descriptor that is listened rec
 (defgeneric pipe-write (pipe byte-array)
   (:documentation "Writes an array of unsigned-byte-8 to an ecore pipe"))
 
-(defmethod pipe-write ((pipe ecore-pipe) byte-array)  
+(defmethod pipe-write ((pipe ecore-pipe) (byte-array array))  
   (unless (typep byte-array '(array (unsigned-byte 8)))
     (error 'ecore-error :message (format nil "~a is not of type ~a~%"
 					 byte-array
