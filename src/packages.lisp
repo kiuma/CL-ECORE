@@ -67,6 +67,14 @@
 	   #:make-idler
 	   ;;job ----
 	   #:make-job
+	   ;;pipe ----
+	   #:make-pipe
+	   #:pipe-write
+	   #:pipe-read-close
+	   #:pipe-write-close
+	   #:pipe-freeze
+	   #:pipe-thaw
+	   #:pipe-wait
 	   ;;thread
 	   #:make-thread
 	   #:*thread-data*

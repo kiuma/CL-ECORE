@@ -29,6 +29,30 @@
 
 (in-package :ecore)
 
+(defgeneric pipe-write (pipe byte-array)
+  (:documentation "Writes an array of unsigned-byte-8 to an ecore pipe"))
+
+(defgeneric pipe-read-close (pipe)
+  (:documentation "Close the read end of an Ecore_Pipe object"))
+
+(defgeneric pipe-write-close (pipe)
+  (:documentation "Close the write end of an Ecore_Pipe object"))
+
+(defgeneric pipe-freeze (pipe)
+  (:documentation "Stop monitoring the pipe for reading"))
+
+(defgeneric pipe-thaw (pipe)
+  (:documentation "Start monitoring again the pipe for reading"))
+
+(defgeneric pipe-wait (pipe message-count duration)
+  (:documentation "Wait from another thread on the read side of a pipe.
+
+- PIPE The pipe to wait for
+- MESSAGE-COUNT The minimal number of messages to wait before exiting
+- DURATION The amount of time in seconds to wait before exiting
+
+RETURNS: The number of message catched during that wait call."))
+
 (defclass ecore-pipe (ecore)
   ((callback :initarg :callback)
    (buffer :initarg :buffer)))
@@ -90,9 +114,6 @@ Add a callback that will be called when the file descriptor that is listened rec
 		       :pointer pointer
 		       :pointer))))
 
-(defgeneric pipe-write (pipe byte-array)
-  (:documentation "Writes an array of unsigned-byte-8 to an ecore pipe"))
-
 (defmethod pipe-write ((pipe ecore-pipe) (byte-array array))  
   (unless (typep byte-array '(array (unsigned-byte 8)))
     (error 'ecore-error :message (format nil "~a is not of type ~a~%"
@@ -106,3 +127,27 @@ Add a callback that will be called when the file descriptor that is listened rec
 		       :pointer (ecore-pointer pipe)
 		       :pointer pipe-buffer
 		       :unsigned-int array-size))))
+
+
+(defmethod pipe-read-close ((pipe ecore-pipe))
+  (foreign-funcall "ecore_pipe_read_close"
+		   :pointer (ecore-pointer pipe)))
+
+(defmethod pipe-write-close ((pipe ecore-pipe))
+  (foreign-funcall "ecore_pipe_write_close"
+		   :pointer (ecore-pointer pipe)))
+
+(defmethod pipe-freeze ((pipe ecore-pipe))
+  (foreign-funcall "ecore_pipe_freeze"
+		   :pointer (ecore-pointer pipe)))
+
+(defmethod pipe-thaw ((pipe ecore-pipe))
+  (foreign-funcall "ecore_pipe_thaw"
+		   :pointer (ecore-pointer pipe)))
+
+(defmethod pipe-wait ((pipe ecore-pipe) message-count duration)
+  (foreign-funcall "ecore_pipe_wait"
+		   :pointer (ecore-pointer pipe)
+		   :int message-count
+		   :double (coerce 'double-float duration)
+		   :int))
