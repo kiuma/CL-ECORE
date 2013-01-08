@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: cl-ecore.asd $
+;;; $Header: tests/con/packages.lisp $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -27,26 +27,7 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(asdf:defsystem :cl-ecore
-  :name "cl-ecore"
-  :author "Andrea Chiumenti"
-  :description "Bindings for ECORE enlightenment library. - Main Loop"
-  :depends-on (:cffi :bordeaux-threads :arnesi)
-  :components ((:module "src"
-		:components ((:module "main-loop"
-			      :components ((:file "packages")
-					   (:file "ecore" :depends-on ("packages"))
-					   (:file "ecore-timer" :depends-on ("ecore"))
-					   (:file "ecore-event" :depends-on ("ecore"))
-					   (:file "ecore-poller" :depends-on ("ecore"))
-					   (:file "ecore-idler" :depends-on ("ecore"))
-					   (:file "ecore-job" :depends-on ("ecore"))
-					   (:file "ecore-pipe" :depends-on ("ecore"))
-					   (:file "ecore-thread" :depends-on ("ecore" "ecore-job" "ecore-pipe"))))))))
+(in-package #:cl-user)
 
-
-(defmethod asdf:perform ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore))))
-  (asdf:oos 'asdf:test-op :cl-ecore-tests))
-
-(defmethod asdf:operation-done-p ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore))))
-  nil)
+(defpackage #:ecore-con-tests
+  (:use :cl :5am :ecore :ecore-con))

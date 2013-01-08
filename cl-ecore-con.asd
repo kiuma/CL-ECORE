@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: cl-ecore.asd $
+;;; $Header: cl-ecore-conn.asd $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -27,26 +27,24 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(asdf:defsystem :cl-ecore
-  :name "cl-ecore"
+(cl:eval-when (:load-toplevel :execute)
+    (asdf:load-system 'cffi-grovel))
+
+(asdf:defsystem :cl-ecore-con
+  :name "cl-ecore-con"
   :author "Andrea Chiumenti"
-  :description "Bindings for ECORE enlightenment library. - Main Loop"
-  :depends-on (:cffi :bordeaux-threads :arnesi)
+  :description "Bindings for ECORE enlightenment library. - Connections"
+  :depends-on (:cffi :cl-ecore)
   :components ((:module "src"
-		:components ((:module "main-loop"
+		:components ((:module "con"
 			      :components ((:file "packages")
-					   (:file "ecore" :depends-on ("packages"))
-					   (:file "ecore-timer" :depends-on ("ecore"))
-					   (:file "ecore-event" :depends-on ("ecore"))
-					   (:file "ecore-poller" :depends-on ("ecore"))
-					   (:file "ecore-idler" :depends-on ("ecore"))
-					   (:file "ecore-job" :depends-on ("ecore"))
-					   (:file "ecore-pipe" :depends-on ("ecore"))
-					   (:file "ecore-thread" :depends-on ("ecore" "ecore-job" "ecore-pipe"))))))))
+					   (cffi-grovel:grovel-file "grovel" :depends-on ("packages"))
+					   (:file "ffi" :depends-on ("grovel"))
+					   (:file "ecore-con" :depends-on ("packages" "ffi"))))))))
 
 
-(defmethod asdf:perform ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore))))
-  (asdf:oos 'asdf:test-op :cl-ecore-tests))
+(defmethod asdf:perform ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore-con))))
+  (asdf:oos 'asdf:test-op :cl-ecore-con-tests))
 
-(defmethod asdf:operation-done-p ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore))))
+(defmethod asdf:operation-done-p ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore-con))))
   nil)

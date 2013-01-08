@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: cl-ecore.asd $
+;;; $Header: src/conn/package.lisp $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -27,26 +27,21 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(asdf:defsystem :cl-ecore
-  :name "cl-ecore"
-  :author "Andrea Chiumenti"
-  :description "Bindings for ECORE enlightenment library. - Main Loop"
-  :depends-on (:cffi :bordeaux-threads :arnesi)
-  :components ((:module "src"
-		:components ((:module "main-loop"
-			      :components ((:file "packages")
-					   (:file "ecore" :depends-on ("packages"))
-					   (:file "ecore-timer" :depends-on ("ecore"))
-					   (:file "ecore-event" :depends-on ("ecore"))
-					   (:file "ecore-poller" :depends-on ("ecore"))
-					   (:file "ecore-idler" :depends-on ("ecore"))
-					   (:file "ecore-job" :depends-on ("ecore"))
-					   (:file "ecore-pipe" :depends-on ("ecore"))
-					   (:file "ecore-thread" :depends-on ("ecore" "ecore-job" "ecore-pipe"))))))))
+(in-package #:cl-user)
 
+(defpackage #:ecore-con
+  (:use :cl :cffi :ecore)
+  (:documentation "Ecore binding for CL - Connections")
+  (:export #:ecore-con-init
+	   #:ecore-con-shutown
+	   #:con-lookup
+	   #:*lookup-info*
+))
 
-(defmethod asdf:perform ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore))))
-  (asdf:oos 'asdf:test-op :cl-ecore-tests))
+(in-package #:ecore-con)
 
-(defmethod asdf:operation-done-p ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore))))
-  nil)
+(define-foreign-library libecore-con
+  (:unix "libecore_con.so")
+  (t (:default "libecore_con")))
+
+(use-foreign-library libecore-con)

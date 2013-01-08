@@ -59,6 +59,10 @@ Making this number to high may have a drastic negative impact.")
 
 (defvar *thread-queue* (make-instance 'arnesi:queue))
 
+(defvar *ecore-init-functions* ())
+
+(defvar *ecore-shutdown-functions* ())
+
 #|
 (defconstant event-signal-user 1)
 (defconstant event-signal-hup 2)
@@ -150,6 +154,7 @@ Making this number to high may have a drastic negative impact.")
 (defun ecore-init () 
   (foreign-funcall "ecore_init" :void))
 
+(pushnew #'ecore-init *ecore-init-functions*)
 
 (defun ecore-shutdown ()
   (loop for obj being the hash-key of *ecore-objects-before*
@@ -157,6 +162,8 @@ Making this number to high may have a drastic negative impact.")
   (loop for obj being the hash-key of *ecore-objects-after*
 	do (ecore-del obj))
   (foreign-funcall "ecore_shutdown" :void))
+
+(pushnew #'ecore-shutdown *ecore-shutdown-functions*)
 
 (defun ecore-loop-quit ()
   (loop for obj being the hash-key of *ecore-objects-before*
@@ -167,9 +174,9 @@ Making this number to high may have a drastic negative impact.")
   (let ((fname (gensym))
 	(cb (gensym)))
     `(flet ((,fname (,cb)
-	     (ecore-init)
+	     (mapcar #'funcall *ecore-init-functions*)
 	     (funcall ,cb)
 	     (main-loop-begin)
-	     (ecore-shutdown)))
+	     (mapcar #'funcall *ecore-shutdown-functions*)))
       (,fname (lambda () ,@body)))))
 

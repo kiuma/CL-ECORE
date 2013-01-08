@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: cl-ecore.asd $
+;;; $Header: src/conn/ecore-conn.lisp $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -27,26 +27,45 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(asdf:defsystem :cl-ecore
-  :name "cl-ecore"
-  :author "Andrea Chiumenti"
-  :description "Bindings for ECORE enlightenment library. - Main Loop"
-  :depends-on (:cffi :bordeaux-threads :arnesi)
-  :components ((:module "src"
-		:components ((:module "main-loop"
-			      :components ((:file "packages")
-					   (:file "ecore" :depends-on ("packages"))
-					   (:file "ecore-timer" :depends-on ("ecore"))
-					   (:file "ecore-event" :depends-on ("ecore"))
-					   (:file "ecore-poller" :depends-on ("ecore"))
-					   (:file "ecore-idler" :depends-on ("ecore"))
-					   (:file "ecore-job" :depends-on ("ecore"))
-					   (:file "ecore-pipe" :depends-on ("ecore"))
-					   (:file "ecore-thread" :depends-on ("ecore" "ecore-job" "ecore-pipe"))))))))
+(in-package #:ecore-con)
 
+(include 
+ "sys/socket.h" 
+ "netinet/in.h")
 
-(defmethod asdf:perform ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore))))
-  (asdf:oos 'asdf:test-op :cl-ecore-tests))
+(ctype sa-family-t "sa_family_t")
 
-(defmethod asdf:operation-done-p ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore))))
-  nil)
+(constantenum address-family
+    ((:af-inet "AF_INET" "PF_INET")
+     :documentation "IPv4 Protocol family")
+    ((:af-local "AF_UNIX" "AF_LOCAL" "PF_UNIX" "PF_LOCAL")
+     :documentation "File domain sockets")
+    ((:af-inet6 "AF_INET6" "PF_INET6")
+     :documentation "IPv6 Protocol family")
+    ((:af-packet "AF_PACKET" "PF_PACKET")
+     :documentation "Raw packet access"
+     :optional t))
+
+(ctype in-port-t "in_port_t")
+(ctype in-addr-t "in_addr_t")
+
+(cunion in6-addr "struct in6_addr"
+  "An IPv6 address."
+  (addr8  "s6_addr"   :type :uint8 :count 16))
+
+(cstruct sockaddr-in "struct sockaddr_in"
+  "An IPv4 socket address."
+  (family "sin_family" :type sa-family-t)
+  (port   "sin_port"   :type in-port-t)
+  (addr   "sin_addr"   :type in-addr-t))
+
+(cstruct in-addr-struct "struct in_addr"
+  (addr "s_addr" :type :uint32))
+
+(cstruct sockaddr-in6 "struct sockaddr_in6"
+  "An IPv6 socket address."
+  (family   "sin6_family"   :type sa-family-t)
+  (port     "sin6_port"     :type in-port-t)
+  (flowinfo "sin6_flowinfo" :type :uint32)
+  (addr     "sin6_addr"     :type in6-addr)
+  (scope-id "sin6_scope_id" :type :uint32))

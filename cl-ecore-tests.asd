@@ -33,21 +33,22 @@
   :description "Bindings for ECORE enlightenment library."
   :depends-on (:fiveam :cl-ecore)
   :components ((:module tests
-                        :components ((:file "packages")
-				     (:file "defsuites" :depends-on ("packages"))
-				     (:file "utils" :depends-on ("packages"))
-                                     (:file "ecore-timer-suite" 
-				      :depends-on ("packages" "defsuites" "utils"))
-				     (:file "ecore-event-suite" 
-				      :depends-on ("packages" "defsuites" "utils"))
-				     (:file "ecore-poller-suite" 
-				      :depends-on ("packages" "defsuites" "utils"))
-				     (:file "ecore-idler-suite" 
-				      :depends-on ("packages" "defsuites" "utils"))
-				     (:file "ecore-job-suite" 
-				      :depends-on ("packages" "defsuites" "utils"))
-				     (:file "ecore-thread-suite" 
-				      :depends-on ("packages" "defsuites" "utils"))))))
+		:components ((:module "main-loop"
+			      :components ((:file "packages")
+					   (:file "defsuites" :depends-on ("packages"))
+					   (:file "utils" :depends-on ("packages"))
+					   (:file "ecore-timer-suite" 
+					    :depends-on ("packages" "defsuites" "utils"))
+					   (:file "ecore-event-suite" 
+					    :depends-on ("packages" "defsuites" "utils"))
+					   (:file "ecore-poller-suite" 
+					    :depends-on ("packages" "defsuites" "utils"))
+					   (:file "ecore-idler-suite" 
+					    :depends-on ("packages" "defsuites" "utils"))
+					   (:file "ecore-job-suite" 
+					    :depends-on ("packages" "defsuites" "utils"))
+					   (:file "ecore-thread-suite" 
+					    :depends-on ("packages" "defsuites" "utils"))))))))
 
 
 (defmethod asdf:perform ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore-tests))))

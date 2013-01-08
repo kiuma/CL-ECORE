@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: src/package.lisp $
+;;; $Header: cl-ecore-con-tests.asd $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -27,61 +27,23 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(in-package #:cl-user)
+(asdf:defsystem :cl-ecore-con-tests
+  :name "cl-ecore-con-test"
+  :author "Andrea Chiumenti"
+  :description "Bindings tests for ECORE enlightenment library. Connection"
+  :depends-on (:fiveam :cl-ecore :cl-ecore-con)
+  :components ((:module tests
+		:components ((:module "con"
+			      :components ((:file "packages")
+					   (:file "defsuites" :depends-on ("packages"))
+					   (:file "utils" :depends-on ("packages"))
+					   (:file "ecore-con-suite" 
+					    :depends-on ("packages" "defsuites" "utils"))))))))
 
-(defpackage #:ecore
-  (:use :cl :cffi)
-  (:documentation "Ecore binding for CL")
-  (:export #:*ecore-buffer-size*
-	   #:*ecore-buffer*
-	   #:in-ecore-loop
-	   #:ecore-loop-quit
-	   #:ecore-error
-	   #:discard
-	   #:ecore
-	   #:ecore-del
-	   #:*ecore-object*
-	   ;; timer ----
-	   #:etimer
-	   #:timer-interval
-	   #:timer-pending
-	   #:timers-precision
-	   #:timers-precision-setf
-	   #:timer-freeze
-	   #:timer-thaw
-	   #:timer-reset
-	   #:timer-delay
-	   #:make-etimer
-	   ;;events ----
-	   #:defevent
-	   #:make-event-handler
-	   #:ecore-event
-	   #:event-type
-	   #:event-add
-	   #:make-event-filter
-	   ;;poller ----
-	   #:make-poller
-	   #:poller-interval
-	   #:poll-interval
-	   #:setf-poll-interval
-	   ;;idler ----
-	   #:make-idler
-	   ;;job ----
-	   #:make-job
-	   ;;pipe ----
-	   #:make-pipe
-	   #:pipe-write
-	   #:pipe-read-close
-	   #:pipe-write-close
-	   #:pipe-freeze
-	   #:pipe-thaw
-	   #:pipe-wait
-	   ;;thread
-	   #:*max-running-threads*
-	   #:make-thread
-	   #:thread-running-p
-	   #:*thread-data*
-	   #:ecore-notify
-	   #:ecore-running-threads
-	   #:ecore-pending-threads
-))
+
+(defmethod asdf:perform ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore-con-tests))))
+  (asdf:oos 'asdf:load-op :cl-ecore-con-tests)
+  (time (funcall (intern (symbol-name '#:run!) '#:5am) :ecore-con)))
+
+(defmethod asdf:operation-done-p ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore-con-tests))))
+  nil)

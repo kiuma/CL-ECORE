@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: cl-ecore.asd $
+;;; $Header: src/main-loop/package.lisp $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -27,26 +27,63 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(asdf:defsystem :cl-ecore
-  :name "cl-ecore"
-  :author "Andrea Chiumenti"
-  :description "Bindings for ECORE enlightenment library. - Main Loop"
-  :depends-on (:cffi :bordeaux-threads :arnesi)
-  :components ((:module "src"
-		:components ((:module "main-loop"
-			      :components ((:file "packages")
-					   (:file "ecore" :depends-on ("packages"))
-					   (:file "ecore-timer" :depends-on ("ecore"))
-					   (:file "ecore-event" :depends-on ("ecore"))
-					   (:file "ecore-poller" :depends-on ("ecore"))
-					   (:file "ecore-idler" :depends-on ("ecore"))
-					   (:file "ecore-job" :depends-on ("ecore"))
-					   (:file "ecore-pipe" :depends-on ("ecore"))
-					   (:file "ecore-thread" :depends-on ("ecore" "ecore-job" "ecore-pipe"))))))))
+(in-package #:cl-user)
 
-
-(defmethod asdf:perform ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore))))
-  (asdf:oos 'asdf:test-op :cl-ecore-tests))
-
-(defmethod asdf:operation-done-p ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore))))
-  nil)
+(defpackage #:ecore
+  (:use :cl :cffi)
+  (:documentation "Ecore binding for CL")
+  (:export #:*ecore-init-functions*
+	   #:*ecore-shutdown-functions*
+	   #:*ecore-buffer-size*
+	   #:*ecore-buffer*
+	   #:in-ecore-loop
+	   #:ecore-loop-quit
+	   #:ecore-error
+	   #:discard
+	   #:ecore
+	   #:ecore-del
+	   #:*ecore-object*
+	   ;; timer ----
+	   #:etimer
+	   #:timer-interval
+	   #:timer-pending
+	   #:timers-precision
+	   #:timers-precision-setf
+	   #:timer-freeze
+	   #:timer-thaw
+	   #:timer-reset
+	   #:timer-delay
+	   #:make-etimer
+	   ;;events ----
+	   #:defevent
+	   #:make-event-handler
+	   #:ecore-event
+	   #:event-type
+	   #:event-add
+	   #:make-event-filter
+	   ;;poller ----
+	   #:make-poller
+	   #:poller-interval
+	   #:poll-interval
+	   #:setf-poll-interval
+	   ;;idler ----
+	   #:make-idler
+	   ;;job ----
+	   #:make-job
+	   ;;pipe ----
+	   #:make-pipe
+	   #:pipe-write
+	   #:pipe-read-close
+	   #:pipe-write-close
+	   #:pipe-freeze
+	   #:pipe-thaw
+	   #:pipe-wait
+	   ;;thread
+	   #:*max-running-threads*
+	   #:make-thread
+	   #:thread-running-p
+	   #:*thread-data*
+	   #:ecore-notify
+	   #:ecore-running-threads
+	   #:ecore-pending-threads
+))

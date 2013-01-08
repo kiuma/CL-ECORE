@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: cl-ecore.asd $
+;;; $Header: tests/con/ecore-con-suite.lisp $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -27,26 +27,28 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(asdf:defsystem :cl-ecore
-  :name "cl-ecore"
-  :author "Andrea Chiumenti"
-  :description "Bindings for ECORE enlightenment library. - Main Loop"
-  :depends-on (:cffi :bordeaux-threads :arnesi)
-  :components ((:module "src"
-		:components ((:module "main-loop"
-			      :components ((:file "packages")
-					   (:file "ecore" :depends-on ("packages"))
-					   (:file "ecore-timer" :depends-on ("ecore"))
-					   (:file "ecore-event" :depends-on ("ecore"))
-					   (:file "ecore-poller" :depends-on ("ecore"))
-					   (:file "ecore-idler" :depends-on ("ecore"))
-					   (:file "ecore-job" :depends-on ("ecore"))
-					   (:file "ecore-pipe" :depends-on ("ecore"))
-					   (:file "ecore-thread" :depends-on ("ecore" "ecore-job" "ecore-pipe"))))))))
+(in-package :ecore-con-tests)
 
+(in-suite :ecore-con-con)
 
-(defmethod asdf:perform ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore))))
-  (asdf:oos 'asdf:test-op :cl-ecore-tests))
+(test (dns-lookup-ipv4-test :compile-at :definition-time)
+      (let ((x 0)
+	    (start (get-internal-real-time)))
+	(in-ecore-loop 
+	  (con-lookup "localhost" (lambda () 
+				    (setf x 1)
+				    (print *lookup-info*)
+				    (ecore-loop-quit))))
+	(is (=  1 x))
+	(is (< 0 (elapsed start)))))
 
-(defmethod asdf:operation-done-p ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore))))
-  nil)
+(test (dns-lookup-ipv6-test :compile-at :definition-time)
+      (let ((x 0)
+	    (start (get-internal-real-time)))
+	(in-ecore-loop 
+	  (con-lookup "::1" (lambda () 
+			      (setf x 1)
+			      (print *lookup-info*)
+			      (ecore-loop-quit))))
+	(is (=  1 x))
+	(is (< 0 (elapsed start)))))
