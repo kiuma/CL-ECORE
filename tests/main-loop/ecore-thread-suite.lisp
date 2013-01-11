@@ -68,7 +68,7 @@
 	(in-ecore-loop
 	 (dotimes (i (* 2 *max-running-threads*))
 	   (make-thread
-	    (lambda () 
+	    (lambda () 	     
 	      (ecore-notify *ecore-object*))
 	    :on-end (lambda () 
 		      (incf x)
@@ -78,10 +78,12 @@
 			 (setf concurrent-threads 
 			       (max concurrent-threads (ecore-running-threads))
 			       pending-threads 
-			       (max pending-threads (ecore-pending-threads)))))))	
+			       (max pending-threads (ecore-pending-threads)))))))
 	(is (= (* 2 *max-running-threads*) x))
 	(is (= *max-running-threads* concurrent-threads))
 	(is (< 0 pending-threads))
+	(is (= 0 (ecore-pending-threads)))
+	(is (= 0 (ecore-running-threads)))
 	(is (< 0 (elapsed start)))))
 
 

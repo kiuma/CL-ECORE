@@ -62,6 +62,7 @@
   (:documentation "Activates a thread"))
 
 (defmethod thread-run ((thread ecore-thread))
+  (incf *running-threads*)
   (with-slots ((cancelled-p cancelled-p)
 	       (running-p running-p)
 	       (pipe pipe)	       
@@ -119,9 +120,7 @@
 			       :on-end on-end
 			       :on-notify on-notify)))
     (if (< *running-threads* *max-running-threads*)
-	(progn
-	  (incf *running-threads*)
-	  (thread-run thread))
+	(thread-run thread)
 	(arnesi:enqueue *thread-queue* thread))))
 
 (defun dequeue-threads ()

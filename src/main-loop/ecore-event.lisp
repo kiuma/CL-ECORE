@@ -211,7 +211,8 @@ Current event is accessible throught the *ECORE-OBJECT* variable"
 			   (,func-data :pointer))			
 			(declare (ignore ,user-data))			 
 			(let ((*ecore-object* (gethash (mem-ref ,func-data :long) %events%)))
-			  (funcall ,g-func)))))))
+			  (funcall ,g-func))
+			(foreign-free ,func-data))))))
     (make-instance 'event-filter
 		   :pointer
 		   (foreign-funcall "ecore_event_filter_add"
