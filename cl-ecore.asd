@@ -35,14 +35,17 @@
   :components ((:module "src"
 		:components ((:module "main-loop"
 			      :components ((:file "packages")
-					   (:file "ecore" :depends-on ("packages"))
+					   (:file "ffi" :depends-on ("packages"))
+					   (:file "ecore" :depends-on ("packages" "ffi"))
 					   (:file "ecore-timer" :depends-on ("ecore"))
 					   (:file "ecore-event" :depends-on ("ecore"))
 					   (:file "ecore-poller" :depends-on ("ecore"))
 					   (:file "ecore-idler" :depends-on ("ecore"))
 					   (:file "ecore-job" :depends-on ("ecore"))
 					   (:file "ecore-pipe" :depends-on ("ecore"))
-					   (:file "ecore-thread" :depends-on ("ecore" "ecore-job" "ecore-pipe"))))))))
+					   (:file "ecore-thread" :depends-on ("ecore" "ecore-job" "ecore-pipe"))
+					   (:file "ecore-fd" :depends-on ("ecore"))
+					   (:file "ecore-helper" :depends-on ("ecore" "ecore-event"))))))))
 
 
 (defmethod asdf:perform ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore))))

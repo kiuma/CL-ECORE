@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: src/ecore-idler.lisp $
+;;; $Header: src/main-loop/ecore-idler.lisp $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -31,34 +31,22 @@
 
 
 (defclass idler (ecore)
-  ((callback :initarg :callback)
-   (type :initarg :type))
+  ((type :initarg :type))
   (:default-initargs :type :enterer))
 
 (defmethod initialize-instance :after ((idler idler) &key)
   (with-slots ((pointer pointer)
-	       (callback callback)
+	       (data-pointer data-pointer)
 	       (type type))
       idler
-    (flet ((idler-add (job)
-	     (let ((cb (def-task-callback job idler)))
-	       (case type
-		 (:enterer (foreign-funcall "ecore_idle_enterer_add"	     
-					    :pointer (get-callback cb)
-					    :pointer (null-pointer)
-					    :pointer))
-		 (:exiter (foreign-funcall "ecore_idle_exiter_add"	     
-					    :pointer (get-callback cb)
-					    :pointer))
-		 (t (foreign-funcall "ecore_idler_add"	     
-					    :pointer (get-callback cb)
-					    :pointer (null-pointer)
-					    :pointer))))))
-      (setf pointer
-	    (idler-add callback)))))
+    (setf pointer (apply (case type
+			   (:enterer #'ffi-ecore-idle-enterer-add)
+			   (:exiter #'ffi-ecore-idle-exiter-add)
+			   (t #'ffi-ecore-idler-add))
+			 (list (callback task-callback) data-pointer)))))
 
 
-(defmacro make-idler (job &key (idler-type :enterer))
+(defun make-idler (job &key (idler-type :enterer))
   "Idler allows for callbacks to be called when the program isn't handling events, timers, pollers or fd handlers.
 
 There are three types of idlers: Enterers, Exiters and Idlers(proper) that can be chosen with ILDER-TYPE keyword.
@@ -67,14 +55,10 @@ There are three types of idlers: Enterers, Exiters and Idlers(proper) that can b
 
 JOB - The callback for the idler
 IDLER-TYPE - May assume values of :ENTERER :EXITER or NIL
-"
-  (let ((g-type (gensym))
-	(g-job (gensym)))
-    `(let ((,g-type ,idler-type)
-	   (,g-job ,job)) 
-       (make-instance 'idler
-		      :type ,g-type
-		      :callback ,g-job))))
+" 
+  (make-instance 'idler
+		 :type idler-type
+		 :object-cb job))
 
 (defmethod ecore-del :after ((idler idler))
   (with-slots ((pointer pointer)
@@ -82,14 +66,8 @@ IDLER-TYPE - May assume values of :ENTERER :EXITER or NIL
       idler
     (when pointer
       (case type 
-	(:enterer (foreign-funcall "ecore_idle_enterer_del" 
-				   :pointer pointer 
-				   :pointer))
-	(:exiter (foreign-funcall "ecore_idle_exiter_del" 
-				  :pointer pointer 
-				  :pointer))
-	(t (foreign-funcall "ecore_idler_del" 
-			    :pointer pointer 
-			    :pointer)))
+	(:enterer (ffi-ecore-idle-enterer-del pointer))
+	(:exiter (ffi-ecore-idle-exiter-del pointer))
+	(t (ffi-ecore-idler-del pointer)))
       (setf pointer nil))))
 

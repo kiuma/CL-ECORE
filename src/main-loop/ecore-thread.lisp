@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: src/ecore-job.lisp $
+;;; $Header: src/main-loop/ecore-job.lisp $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -38,7 +38,6 @@
 (defclass ecore-thread (ecore) 
   ((pipe :initarg :pipe)
    (job :initarg :job)
-   (callback :initarg :callback)
    (data :initarg :data)
    (on-end-callback :initarg :on-end)
    (on-notify-callback :initarg :on-notify)
@@ -70,7 +69,7 @@
 	       (data data)
 	       (notify-lock notify-lock)
 	       (notify-condition notify-condition)
-	       (callback callback)
+	       (object-cb object-cb)
 	       (on-end on-end-callback)
 	       (on-notify on-notify-callback))
       thread
@@ -96,7 +95,7 @@
 			     (lambda ()  
 			       (let ((*thread-data* data)
 				     (*ecore-object* thread))
-				 (funcall callback)  
+				 (funcall object-cb)  
 				 (with-slots ((pipe pipe) 
 					      (notify-lock notify-lock)
 					      (notify-condition notify-condition))
@@ -115,7 +114,7 @@
 - ON-END Notifies main loop when JOB has completed
 - ON-NOTIFY Callback called when you want to update the main thread status \(using the *THREAD-DATA* exchange variable\) and calling ECORE-NOTIFY from the JOB calllback function"
   (let ((thread (make-instance 'ecore-thread
-			       :callback job
+			       :object-cb job
 			       :data initial-data
 			       :on-end on-end
 			       :on-notify on-notify)))

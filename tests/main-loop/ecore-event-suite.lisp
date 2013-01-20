@@ -31,59 +31,41 @@
 
 (in-suite :ecore-event)
 
+(test (event-filter-and-handler :compile-at :definition-time)
+  (let ((quit-loop-on-event nil))
+    (in-ecore-loop
+      (setf quit-loop-on-event t)
+      (ecore-loop-quit t))
+    (is-true quit-loop-on-event)))
+
+
 (test (exit-loop-on-user-event :compile-at :definition-time)
   (let ((event nil))
-    (in-ecore-loop      
-      (defevent quit-event () (x))
-      (make-event-handler (event-type 'quit-event) 
+    (in-ecore-loop
+      (defevent 'test-quit-event)
+      (make-event-handler 'test-quit-event
 			  (lambda ()
 			    (setf event *ecore-object*)
-			    (ecore-loop-quit)))
-      (event-add (make-instance 'quit-event)))
-    (is (not (null event))))) 
+			    (ecore-loop-quit t)))
+      (make-event 'test-quit-event))
+    (is (not (null event)))))
 
 (test (event-filter-and-handler :compile-at :definition-time)
   (let ((filter-p nil)
 	(event-p nil))
-    (in-ecore-loop      
-      (defevent quit-event () (x))
-      (make-event-handler (event-type 'quit-event) 
-			  (lambda ()			    
-			    (setf event-p *ecore-object*)
+    (in-ecore-loop
+      (defevent 'test-quit-event)
+      (make-event-handler 'test-quit-event
+			  (lambda ()
+			    (setf event-p t)
 			    (ecore-loop-quit)))
-      (make-event-filter :before-event-cb (lambda () 
-					    (when (and *ecore-object* 
-						       (eql (event-type *ecore-object*)
-							    (event-type 'quit-event)))
-					      (setf filter-p t))))
-      (event-add (make-instance 'quit-event)))
-    (is (not (null event-p)))
-    (is (not (null filter-p)))))
-
-
-(test (event-filter-no-handler :compile-at :definition-time)
-  (let ((filter-p nil)
-	(event-p nil)
-	(event-on-after-filter-p nil))
-    (in-ecore-loop      
-      (defevent quit-event () (x))
-      (make-event-handler (event-type 'quit-event) 
-			  (lambda ()			    
-			    (setf event-p *ecore-object*)))
-      (make-event-filter :before-event-cb (lambda () 
-					    (when (and *ecore-object* 
-						       (eql (event-type *ecore-object*)
-							    (event-type 'quit-event)))
-					      (setf filter-p t)
-					      (signal 'discard)))
-			 :after-event-cb (lambda () 
-					   (when (and *ecore-object* 
-						       (eql (event-type *ecore-object*)
-							    (event-type 'quit-event)))
-					      (setf event-on-after-filter-p t))
-					   (ecore-loop-quit)))
-      (event-add (make-instance 'quit-event)))
-    (is (null event-p))
-    (is (not (null filter-p)))
-    (is (not (null event-on-after-filter-p)))))
-
+      (make-event-filter (lambda ()
+			   (when (and (ecore-event *ecore-object*)
+				      (eql (event-type *ecore-object*)
+					   (event-type 'test-quit-event))
+				      (eql (event-type *ecore-object*)
+					   (event-type (ecore-event *ecore-object*))))
+			     (setf filter-p t))))
+      (make-event 'test-quit-event))
+    (is-true event-p)
+    (is-true filter-p)))

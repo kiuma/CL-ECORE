@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: src/conn/package.lisp $
+;;; $Header: src/main-loop/ecore-helper.lisp $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -27,11 +27,34 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(in-package #:ecore-con)
+(in-package :ecore)
 
-(define-foreign-library libecore-con
-  (:unix "libecore_con.so")
-  (t (:default "libecore_con")))
+(defvar *event-type-quit* 'ecore-quit-event)
 
+(defun ecore-object-from-data-pointer (data-pointer)
+  (gethash (cffi-sys:pointer-address data-pointer) *ecore-objects*))
 
-(use-foreign-library libecore-con)
+(defun %ecore-loop-quit% ()
+  (loop for key being the hash-key of *ecore-objects* 
+	using (hash-value ecore-object)
+	do (ecore-del ecore-object))
+  (ffi-ecore-main-loop-quit))
+
+(defun ecore-loop-quit (&optional as-signal-p)
+  (if as-signal-p
+      (make-event 'ecore-quit-event 
+		  :end-cb (lambda () (%ecore-loop-quit%)))
+      (%ecore-loop-quit%)))
+
+(defun %in-ecore-loop% (func)
+  (ecore-init)
+  (mapcar #'funcall ecore.sys::*ecore-init-functions*)
+  (defevent *event-type-quit*)
+  (funcall func)
+  (main-loop-begin)
+  (mapcar #'funcall ecore.sys::*ecore-shutdown-functions*)
+  (ecore-shutdown))
+
+(defmacro in-ecore-loop (&body body)
+  `(%in-ecore-loop% (lambda () ,@body)))
+

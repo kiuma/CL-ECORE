@@ -29,15 +29,25 @@
 
 (in-package #:ecore-con)
 
+
+
 (defclass lookup-info ()
   ((canon-name :initarg :canon-name :reader canon-name)
    (ip :initarg :ip :reader ip)
-   (address-family :initarg :a-family)
-   (port :initarg :port)
-   (address :initarg :address)
-   (flow-info :initarg :flow-info)
-   (scope-id :initarg :scope-id))
-  (:default-initargs :flow-info nil :scope-id nil))
+   (address-family :initarg :a-family :reader address-family)
+   (port :initarg :port :reader port)
+   (address :initarg :address :reader address)
+   (flow-info :initarg :flow-info :reader flow-info)
+   (scope-id :initarg :scope-id :reader scope-id))
+  (:default-initargs :canon-name nil
+   :ip nil
+   :a-family nil
+   :port nil
+   :address nil
+   :flow-info nil :scope-id nil))
+
+(defclass ecore-con (ecore lookup-info) 
+  ((lookup-address :initarg :lookup-address)))
 
 (defmethod print-object ((info lookup-info) stream)
   (with-slots ((canon-name canon-name)
@@ -57,17 +67,15 @@ ADDRESS: ~a
 FLOW-INFO: ~a
 SCOPE-ID: ~a>" (class-name (class-of info)) canon-name ip address-family port address flow-info scope-id)))
 
-(defvar *lookup-info* nil)
-
 (defun ecore-con-init () 
   (ffi-ecore-con-init))
 
-(pushnew #'ecore-con-init *ecore-init-functions*)
+(add-ecore-init-function #'ecore-con-init)
 
 (defun ecore-con-shutdown () 
   (ffi-ecore-con-shutdown))
 
-(pushnew #'ecore-con-shutdown *ecore-shutdown-functions*)
+(add-ecore-shutdown-function #'ecore-con-shutdown)
 
 (defgeneric copy-foreign-ipv4 (info pointer))
 
@@ -99,37 +107,37 @@ SCOPE-ID: ~a>" (class-name (class-of info)) canon-name ip address-family port ad
 	    info-flow-info flowinfo
 	    info-scope-id scope-id))))
 
+(defcallback con-dns-callback :void
+    ((cb-canon-name :string)
+     (cb-ip :string)
+     (addr :pointer)
+     (addr-len :int)
+     (data :pointer))
+  (let ((*ecore-object* (ecore-object-from-data-pointer data)))
+    (with-slots ((canon-name canon-name)
+		 (ip ip))
+	*ecore-object*
+      (setf ip cb-ip
+	    canon-name cb-canon-name)
+      (cond
+	((= addr-len size-of-sockaddr-in) 
+	 (copy-foreign-ipv4 *ecore-object* addr))
+	((= addr-len size-of-sockaddr-in6) 
+	 (copy-foreign-ipv6 *ecore-object* addr))
+	(t (error 'ecore-error :message 
+		  (format nil "Unkown size for sockaddr: ~d. Must be ~a" 
+			  addr-len (list size-of-sockaddr-in size-of-sockaddr-in6)))))
+      (funcall (object-cb *ecore-object*))
+      (ecore-del *ecore-object*))))
 
+(defmethod initialize-instance :after ((ecore-con ecore-con) &key)
+  (with-slots ((lookup-address lookup-address))
+      ecore-con
+    (ffi-ecore-con-lookup lookup-address
+			  (callback con-dns-callback)
+			  (ecore-data-pointer ecore-con))))
 
-(defun con-lookup (name callback)
-  (macrolet ((def-dns-callback (func)
-	       (let ((fname (intern  (symbol-name (gensym))))
-		     (g-func (gensym))
-		     (g-canon-name (gensym))
-		     (g-ip (gensym))
-		     (g-addr (gensym))
-		     (g-addr-len (gensym))
-		     (g-data (gensym)))
-		 `(let ((,g-func ,func))
-		    (defcallback ,fname :void
-			((,g-canon-name :string)
-			 (,g-ip :string)
-			 (,g-addr :pointer)
-			 (,g-addr-len :int)
-			 (,g-data :pointer))
-		      (declare (ignore ,g-data))
-		      (let ((*lookup-info* (make-instance 'lookup-info
-							  :canon-name ,g-canon-name
-							  :ip ,g-ip)))
-			(cond
-			  ((= ,g-addr-len size-of-sockaddr-in) 
-			   (copy-foreign-ipv4 *lookup-info* ,g-addr))
-			  ((= ,g-addr-len size-of-sockaddr-in6) 
-			   (copy-foreign-ipv6 *lookup-info* ,g-addr))
-			  (t (error 'ecore-error :message 
-				    (format nil "Unkown size for sockaddr: ~d. Must be ~a" ,g-addr-len (list size-of-sockaddr-in size-of-sockaddr-in6)))))
-			(funcall ,g-func)))))))
-    (let ((cb (def-dns-callback callback)))
-      (= 1 (ffi-ecore-con-lookup name 
-			       (get-callback cb) 
-			       (null-pointer))))))
+(defun con-lookup (name lookup-cb)
+  (make-instance 'ecore-con
+		 :lookup-address name
+		 :object-cb lookup-cb))

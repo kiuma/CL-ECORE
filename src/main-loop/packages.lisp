@@ -29,20 +29,28 @@
 
 (in-package #:cl-user)
 
+(defpackage #:ecore.sys
+  (:use :cl :cffi)
+  (:export #:add-ecore-init-function
+	   #:add-ecore-shutdown-function))
+
 (defpackage #:ecore
   (:use :cl :cffi)
   (:documentation "Ecore binding for CL")
-  (:export #:*ecore-init-functions*
-	   #:*ecore-shutdown-functions*
-	   #:*ecore-buffer-size*
+  (:export #:*ecore-buffer-size*
 	   #:*ecore-buffer*
+	   #:*system-events*
 	   #:in-ecore-loop
 	   #:ecore-loop-quit
 	   #:ecore-error
 	   #:discard
 	   #:ecore
+	   #:ecore-data-pointer
+	   #:ecore-pointer
+	   #:object-cb
 	   #:ecore-del
 	   #:*ecore-object*
+	   #:ecore-object-from-data-pointer
 	   ;; timer ----
 	   #:etimer
 	   #:timer-interval
@@ -55,11 +63,11 @@
 	   #:timer-delay
 	   #:make-etimer
 	   ;;events ----
-	   #:defevent
+	   #:defevent	   
 	   #:make-event-handler
 	   #:ecore-event
 	   #:event-type
-	   #:event-add
+	   #:make-event
 	   #:make-event-filter
 	   ;;poller ----
 	   #:make-poller
@@ -86,4 +94,16 @@
 	   #:ecore-notify
 	   #:ecore-running-threads
 	   #:ecore-pending-threads
+	   ;;fd-handler
+	   #:fd-flags
+	   #:make-fd-handler
 ))
+
+(in-package :ecore)
+
+(define-foreign-library libecore
+  (:unix "libecore.so")
+  (t (:default "libecore")))
+
+
+(use-foreign-library libecore)

@@ -32,20 +32,17 @@
 (in-suite :ecore-job)
 
 (test (make-job-test :compile-at :definition-time)
-      (let ((x 0)
-	    (start (get-internal-real-time)))
+      (let ((x 0))
 	(in-ecore-loop 
 	  (make-job
 		 (lambda () 
 		   (incf x)		   
 		   (ecore-loop-quit))))	
-	(is (= 1 x))
-	(is (< 0 (elapsed start)))))
+	(is (= 1 x))))
 
 (test (make-job-order-test :compile-at :definition-time)
       (let ((x 0)
-	    (job1 nil)
-	    (start (get-internal-real-time)))
+	    (job1 nil))
 	(in-ecore-loop 
 	  (make-job
 		 (lambda () 
@@ -55,6 +52,5 @@
 		   (setf job1 x)
 		   (ecore-loop-quit))))	
 	(is (= 1 x))
-	(is (= 1 job1))
-	(is (< 0 (elapsed start)))))
+	(is (= 1 job1))))
 

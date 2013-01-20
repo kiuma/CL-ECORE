@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: src/ecore-job.lisp $
+;;; $Header: src/main-loop/ecore-job.lisp $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -31,45 +31,42 @@
 
 
 (defclass ecore-job (ecore)
-  ((callback :initarg :callback)))
+  ())
+
+(defcallback job-callback :int
+    ((data :pointer))
+  (let* ((*ecore-object* (ecore-object-from-data-pointer data)))
+    (with-slots ((pointer pointer)
+		 (object-cb object-cb))
+	*ecore-object*
+      (setf pointer nil)
+      (when object-cb
+	(funcall object-cb)))
+    (ecore-del *ecore-object*))
+  0)
 
 (defmethod initialize-instance :after ((ecore-job ecore-job) &key)
   (with-slots ((pointer pointer)
-	       (callback callback))
+	       (data-pointer data-pointer))
       ecore-job
-    (flet ((job-add (job)
-	     (let ((cb (def-task-callback job ecore-job)))	        
-	       (foreign-funcall "ecore_job_add"	     
-				:pointer (get-callback cb)
-				:pointer (null-pointer)
-				:pointer))))
-      (setf pointer
-	    (job-add (lambda () 
-		       (unwind-protect
-			    (let ((*ecore-object* ecore-job))
-			      (funcall callback))
-			 (setf pointer nil))))))))
+    (setf pointer (ffi-ecore-job-add (callback job-callback)
+				     data-pointer))))
 
 
-(defmacro make-job (job)
+(defun make-job (job)
   "You can queue jobs that are to be done by the main loop when the current event is dealt with.
 
 Jobs are processed by the main loop similarly to events. They also will be executed in the order in which they were added.
 
 A good use for them is when you don't want to execute an action immediately, but want to give the control back to the main loop so that it will call your job callback when jobs start being processed \(and if there are other jobs added before yours, they will be processed first\). This also gives the chance to other actions in your program to cancel the job before it is started.
 
-- JOB callback to excute."
-  (let ((g-job (gensym)))
-    `(let ((,g-job ,job)) 
-       (make-instance 'ecore-job
-		      :callback ,g-job))))
+- JOB callback to excute." 
+  (make-instance 'ecore-job
+		 :object-cb job))
 
 (defmethod ecore-del :after ((ecore-job ecore-job))
   (with-slots ((pointer pointer))
-      ecore-job
-    (when pointer       
-      (foreign-funcall "ecore_job_del" 
-		       :pointer pointer 
-		       :pointer)
-      (setf pointer nil))))
+      ecore-job    
+    (when (and pointer (not (null-pointer-p pointer)))     
+      (ffi-ecore-job-del pointer))))
 

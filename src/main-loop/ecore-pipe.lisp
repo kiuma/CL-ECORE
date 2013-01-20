@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: src/ecore-pipe.lisp $
+;;; $Header: src/main-loop/ecore-pipe.lisp $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -54,65 +54,49 @@
 RETURNS: The number of message catched during that wait call."))
 
 (defclass ecore-pipe (ecore)
-  ((callback :initarg :callback)
-   (buffer :initarg :buffer)))
+  ((buffer :initarg :buffer)))
 
+(defcallback pipe-callback :void
+    ((data :pointer)
+     (c-buffer :pointer)
+     (n-bytes :unsigned-int))
+  (let ((*ecore-object* (ecore-object-from-data-pointer data)))
+    (with-slots ((buffer buffer)
+		 (object-cb object-cb))
+	*ecore-object*
+      (let ((*ecore-buffer* 
+	      (loop for i from 0 below n-bytes
+		    do (setf (aref buffer i) 
+			     (mem-aref c-buffer :unsigned-char i))
+		    finally (return (make-array n-bytes 
+						:element-type '(unsigned-byte 8) 
+						:displaced-to buffer)))))
+	(funcall object-cb)))))
 
 (defmethod initialize-instance :after ((pipe ecore-pipe) &key)
-  (with-slots ((pointer pointer)	     
-	       (callback callback)
-	       (buffer buffer))
+  (with-slots ((pointer pointer)
+	       (data-pointer data-pointer))
       pipe
-    (macrolet ((def-pipe-callback (func pipe-buffer pipe)
-		 (let ((fname (intern  (symbol-name (gensym))))
-		       (g-data (gensym))
-		       (g-buffer (gensym))
-		       (g-nbytes (gensym))
-		       (g-pipe-buffer (gensym))
-		       (g-pipe (gensym))
-		       (g-func (gensym))
-		       (i (gensym)))
-		   `(let ((,g-func ,func)
-			  (,g-pipe-buffer ,pipe-buffer)
-			  (,g-pipe ,pipe)) 
-		      (defcallback ,fname :void
-			  ((,g-data :pointer)
-			   (,g-buffer :pointer)
-			   (,g-nbytes :unsigned-int))
-			(declare (ignore ,g-data))
-			(let ((*ecore-object* ,g-pipe)
-			      (*ecore-buffer* (loop for ,i from 0 below ,g-nbytes
-						    do (setf (aref ,g-pipe-buffer ,i) 
-							     (mem-aref ,g-buffer :unsigned-char ,i))
-						    finally (return (make-array ,g-nbytes 
-										:element-type '(unsigned-byte 8) :displaced-to ,g-pipe-buffer)))))
-			  (funcall ,g-func)))))))
-      (let ((cb (def-pipe-callback callback buffer pipe)))    
-	(setf pointer
-	      (foreign-funcall "ecore_pipe_add"
-			       :pointer (get-callback cb) 
-			       :pointer (null-pointer) 
-			       :pointer))))))
+    (setf pointer (ffi-ecore-pipe-add (callback pipe-callback) data-pointer))))
 
-(defmacro make-pipe (callback &optional (buffer-size *ecore-buffer-size*))
+(defun make-pipe (pipe-cb &optional (buffer-size *ecore-buffer-size*))
   "Create two file descriptors (sockets on Windows).
 
 Add a callback that will be called when the file descriptor that is listened receives data. An event is also put in the event queue when data is received.
 
-- CALLBACK the callback function called when data is written to the pipe
+- PIPE-CB the callback function called when data is written to the pipe
 - BUFFER-SIZE default size for read buffer"
-  `(make-instance 'ecore-pipe 
-		  :buffer (make-array ,buffer-size :element-type '(unsigned-byte 8))
-		  :callback ,callback))
+  (make-instance 'ecore-pipe 
+		 :buffer (make-array buffer-size :element-type '(unsigned-byte 8))
+		 :object-cb pipe-cb))
 
 
 (defmethod ecore-del :after ((pipe ecore-pipe))
   (with-slots ((pointer pointer))
       pipe
     (when pointer
-      (foreign-funcall "ecore_pipe_del"
-		       :pointer pointer
-		       :pointer))))
+      (ffi-ecore-pipe-del pointer)
+      (setf pointer nil))))
 
 (defmethod pipe-write ((pipe ecore-pipe) (byte-array array))  
   (unless (typep byte-array '(array (unsigned-byte 8)))
@@ -123,31 +107,22 @@ Add a callback that will be called when the file descriptor that is listened rec
     (with-foreign-object (pipe-buffer :unsigned-char array-size)
       (dotimes (i array-size)
 	(setf (mem-aref pipe-buffer :unsigned-char i) (aref byte-array i)))
-      (foreign-funcall "ecore_pipe_write"
-		       :pointer (ecore-pointer pipe)
-		       :pointer pipe-buffer
-		       :unsigned-int array-size))))
+      (ffi-ecore-pipe-write (ecore-pointer pipe) pipe-buffer array-size))))
 
 
 (defmethod pipe-read-close ((pipe ecore-pipe))
-  (foreign-funcall "ecore_pipe_read_close"
-		   :pointer (ecore-pointer pipe)))
+  (ffi-ecore-pipe-read-close (ecore-pointer pipe)))
 
 (defmethod pipe-write-close ((pipe ecore-pipe))
-  (foreign-funcall "ecore_pipe_write_close"
-		   :pointer (ecore-pointer pipe)))
+  (ffi-ecore-pipe-write-close (ecore-pointer pipe)))
 
 (defmethod pipe-freeze ((pipe ecore-pipe))
-  (foreign-funcall "ecore_pipe_freeze"
-		   :pointer (ecore-pointer pipe)))
+  (ffi-ecore-pipe-freeze (ecore-pointer pipe)))
 
 (defmethod pipe-thaw ((pipe ecore-pipe))
-  (foreign-funcall "ecore_pipe_thaw"
-		   :pointer (ecore-pointer pipe)))
+  (ffi-ecore-pipe-thaw (ecore-pointer pipe)))
 
 (defmethod pipe-wait ((pipe ecore-pipe) message-count duration)
-  (foreign-funcall "ecore_pipe_wait"
-		   :pointer (ecore-pointer pipe)
-		   :int message-count
-		   :double (coerce 'double-float duration)
-		   :int))
+  (ffi-ecore-pipe-wait (ecore-pointer pipe) 
+		       message-count 
+		       (coerce 'double-float duration)))

@@ -64,8 +64,7 @@
 	(is (< 0 (elapsed start)))))
 
 (test (make-idler-test :compile-at :definition-time)
-      (let ((x 0)
-	    (start (get-internal-real-time)))
+      (let ((x 0))
 	(in-ecore-loop 	 
 	 (make-idler
 		 (lambda () 
@@ -73,5 +72,4 @@
 		   (when (= x 4)
 		     (ecore-loop-quit)))
 		 :idler-type nil))	
-	(is (= 4 x))
-	(is (< 0 (elapsed start)))))
+	(is (= 4 x))))

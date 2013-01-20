@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: src/ecore.lisp $
+;;; $Header: src/main-loop/ecore.lisp $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -27,18 +27,34 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+(in-package :ecore.sys)
+
+(defvar *ecore-init-functions* ())
+(defvar *ecore-shutdown-functions* ())
+
+(defun add-ecore-init-function  (func)
+  (pushnew func *ecore-init-functions*))
+
+(defun add-ecore-shutdown-function  (func)
+  (pushnew func *ecore-shutdown-functions*))
+
+;; =============================================================================
+;; =============================================================================
+;; =============================================================================
+
 (in-package :ecore)
 
-(define-foreign-library libecore
-  (:unix "libecore.so")
-  (t (:default "libecore")))
+(defvar *system-events* '(:NULL :USER :HUP :EXIT :POWER :REALTIME))
+(defvar *event-types* nil)
 
+(defun init-event-types ()  
+  (setf *event-types* (make-hash-table :test 'equal))
+  (loop for ev in ecore::*system-events*
+	for i = 0 then (incf i)
+	do (setf (gethash ev *event-types*) i)))
 
-(use-foreign-library libecore)
- 
-(defvar *ecore-objects-before* (make-hash-table))
-
-(defvar *ecore-objects-after* (make-hash-table))
+(defvar *ecore-objects* (make-hash-table))
+(defvar *thread-queue* (make-instance 'arnesi:queue))
 
 (defvar *ecore-object* nil
   "Varibale used to get the current Ecore object when inside a timer callback")
@@ -57,22 +73,6 @@ Threads creaded wile this limit is reached will be enqueued and run when the num
 
 Making this number to high may have a drastic negative impact.")
 
-(defvar *thread-queue* (make-instance 'arnesi:queue))
-
-(defvar *ecore-init-functions* ())
-
-(defvar *ecore-shutdown-functions* ())
-
-#|
-(defconstant event-signal-user 1)
-(defconstant event-signal-hup 2)
-(defconstant event-signal-exit 3)
-(defconstant event-signal-power 4)
-(defconstant event-signal-realtime 5)
-
-|#  
-
-
 
 (define-condition ecore-error (error)
   ((message :initarg :message :reader message))
@@ -87,22 +87,22 @@ Making this number to high may have a drastic negative impact.")
 - For an EVENT-HANDLER callback, it will cease processing handlers for that particular event, so all handler set to handle that event type that have not already been called, will not be."))
 
 (defclass ecore ()
-  ((pointer :initarg :pointer)
-   (delete-before-main-loop-quit :initarg :delete-before-main-loop-quit)
+  ((pointer :initarg :pointer :reader ecore-pointer)
    (do-not-hash-p :initarg :do-not-hash)
+   (data-pointer :initarg :data-pointer :reader ecore-data-pointer)
+   (object-cb :initarg :object-cb :accessor object-cb)
    (data :initarg :data))
-  (:default-initargs :pointer nil :data nil :do-not-hash nil :delete-before-main-loop-quit nil))
+  (:default-initargs :pointer nil :data nil :data-pointer nil :do-not-hash nil :object-cb nil))
 
 (defclass ecore-invalid () ())
 
 (defmethod initialize-instance :after ((ecore ecore) &key)
-  (with-slots ((before delete-before-main-loop-quit)
-	       (do-not-hash-p do-not-hash-p))
+  (with-slots ((do-not-hash-p do-not-hash-p)
+	       (data-pointer data-pointer))
       ecore    
     (unless do-not-hash-p
-      (setf (gethash ecore (if before
-			       *ecore-objects-before*
-			       *ecore-objects-after*)) t))))
+      (setf data-pointer (foreign-alloc :char))
+      (setf (gethash (cffi-sys:pointer-address data-pointer) *ecore-objects*) ecore))))
 
 (defgeneric ecore-pointer (ecore)
   (:documentation "When not null returns an Ecore_* pointer, it signals a ECORE-ERROR otherwise." ))
@@ -113,70 +113,52 @@ Making this number to high may have a drastic negative impact.")
 (defgeneric ecore-del (ecore)
   (:documentation "Removes an ecore object from the ecore main loop"))
 
+(defmethod ecore-del ((may-be-null t))
+  (declare (ignore may-be-null)))
+
 (defmethod ecore-del ((ecore ecore))
-  (with-slots ((before delete-before-main-loop-quit)
-	       (do-not-hash-p do-not-hash-p))
+  (with-slots ((do-not-hash-p do-not-hash-p)
+	       (data-pointer data-pointer))
       ecore
-    (unless do-not-hash-p
-      (remhash ecore (if before
-			 *ecore-objects-before*
-			 *ecore-objects-after*)))))
-
-(defmacro def-task-callback (func ecore)
-  (let ((fname (intern  (symbol-name (gensym))))
-	(data (gensym))
-	(do-again (gensym))
-	(e (gensym))
-	(g-ecore (gensym))
-	(g-func (gensym)))
-    `(let ((,g-ecore ,ecore)
-	   (,g-func ,func)) 
-       (defcallback ,fname :int
-	   ((,data :pointer))
-	 (declare (ignore ,data))
-	 (let ((,do-again 1))
-	   (handler-case
-	       (let ((*ecore-object* ,g-ecore))
-		 (funcall ,g-func))
-	     (ecore-error (,e) 
-	       (setf ,do-again 0
-		     (slot-value ,g-ecore 'pointer) nil) 
-	       (and (not (typep ,e 'discard)) 
-		    (progn (error ,e)))))
-	   ,do-again)))))
+    (when (and data-pointer (not (null-pointer-p data-pointer)))
+      (remhash (cffi-sys:pointer-address data-pointer) *ecore-objects*)
+      (foreign-free data-pointer))
+    (setf data-pointer nil)))
 
 
-(defctype eina-true :int 1)
-(defctype eina-false :int 0)
 
-(defcfun ("ecore_main_loop_begin" main-loop-begin) :void)
+(defun main-loop-begin () (ffi-ecore-main-loop-begin))
 
 (defun ecore-init () 
-  (foreign-funcall "ecore_init" :void))
-
-(pushnew #'ecore-init *ecore-init-functions*)
+  (setf *ecore-objects* (make-hash-table)
+	*thread-queue* (make-instance 'arnesi:queue))
+  (init-event-types)
+  (ffi-ecore-init))
 
 (defun ecore-shutdown ()
-  (loop for obj being the hash-key of *ecore-objects-before*
-	do (ecore-del obj))
-  (loop for obj being the hash-key of *ecore-objects-after*
-	do (ecore-del obj))
-  (foreign-funcall "ecore_shutdown" :void))
+  (unless ecore.sys::*ecore-shutdown-functions*
+    (ffi-ecore-shutdown)))
 
-(pushnew #'ecore-shutdown *ecore-shutdown-functions*)
 
-(defun ecore-loop-quit ()
-  (loop for obj being the hash-key of *ecore-objects-before*
-	do (ecore-del obj))
-  (foreign-funcall "ecore_main_loop_quit" :void))
 
-(defmacro in-ecore-loop (&body body)
-  (let ((fname (gensym))
-	(cb (gensym)))
-    `(flet ((,fname (,cb)
-	     (mapcar #'funcall *ecore-init-functions*)
-	     (funcall ,cb)
-	     (main-loop-begin)
-	     (mapcar #'funcall *ecore-shutdown-functions*)))
-      (,fname (lambda () ,@body)))))
+;;----------------------- CALBACKS HERE ---------------------------
+
+(defcallback task-callback :int
+    ((data :pointer))
+  (let ((do-again 1)
+	(*ecore-object* (ecore-object-from-data-pointer data)))
+    (if *ecore-object*
+	(handler-case
+	    (let ((cb (slot-value *ecore-object* 'object-cb)))
+	      (when cb
+		(funcall cb)))
+	  (ecore-error (e) 
+	    (setf do-again 0)
+	    (ecore-del *ecore-object*)
+	    (and (not (typep e 'discard)) 
+		 (progn (error e)))))
+	(setf do-again 0))
+    do-again))
+
+
 

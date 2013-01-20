@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: src/ecore-timer.lisp $
+;;; $Header: src/main-loop/ecore-timer.lisp $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -35,7 +35,7 @@
 	:documentation "The job of this timer (as a callback function)")
    (loop-p :reader timer-loop-p :initarg :loop-p
 	   :documentation "When true, the next timeout is relative to the end of the current timer workload"))
-  (:default-initargs :loop-p nil :delete-before-main-loop-quit t))
+  (:default-initargs :loop-p nil))
 
 (defgeneric timer-reset (etimer)
   (:documentation "Reset a timer to its full interval This doesn't affect the interval of a timer
@@ -82,7 +82,7 @@ The timer will be resumed from its previous relative position in time. That mean
 
 (defun timers-precision ()
    "Retrieves the current precision used by timer infrastructure."
-  (foreign-funcall "ecore_timer_precision_get" :double))
+  (ffi-ecore-timer-precision-get))
 
 (defun timers-precision-setf (precision)
   "Sets the precision to be used by timer infrastructure.
@@ -96,97 +96,60 @@ Be aware that kernel may delay delivery even further, these delays are always po
 Example: We have 2 timers, one that expires in a 2.0s and another that expires in 2.1s, if precision is 0.1s, then the Ecore will request for the next expire to happen in 2.1s and not 2.0s and another one of 0.1 as it would before.
 
 "
-  (foreign-funcall "ecore_timer_precision_set"
-		   :double (coerce precision 'double-float)
-		   :void))
+  (ffi-ecore-timer-precision-set (coerce precision 'double-float)))
 
 (defmethod timer-freeze ((etimer etimer))
-  (foreign-funcall "ecore_timer_freeze" 
-		   :pointer (ecore-pointer etimer)
-		   :void))
+  (ffi-ecore-timer-freeze (ecore-pointer etimer)))
 
 (defmethod timer-thaw ((etimer etimer))
-  (foreign-funcall "ecore_timer_thaw" 
-		   :pointer (ecore-pointer etimer)
-		   :void))
+  (ffi-ecore-timer-thaw (ecore-pointer etimer)))
 
 (defmethod timer-pending ((etimer etimer))
-  (foreign-funcall "ecore_timer_pending_get" 
-		   :pointer (ecore-pointer etimer)
-		   :double))
+  (ffi-ecore-timer-pending-get (ecore-pointer etimer)))
 
 (defmethod timer-interval ((etimer etimer))
-  (foreign-funcall "ecore_timer_interval_get" 
-		   :pointer (ecore-pointer etimer)
-		   :double))
+  (ffi-ecore-timer-interval-get (ecore-pointer etimer)))
 
 (defmethod (setf timer-interval) (interval (etimer etimer))
-  (foreign-funcall "ecore_timer_interval_set" 
-		   :pointer (ecore-pointer etimer)
-		   :double (coerce interval 'double-float) 		   
-		   :void))
+  (ffi-ecore-timer-interval-set (ecore-pointer etimer) (coerce interval 'double-float)))
 
 (defmethod timer-reset ((etimer etimer))
-  (foreign-funcall "ecore_timer_reset"
-		   :pointer (ecore-pointer etimer)
-		   :void))
+  (ffi-ecore-timer-reset (ecore-pointer etimer)))
 
 (defmethod ecore-del :after ((etimer etimer))
   (with-slots ((pointer pointer))
       etimer
-    (when (and pointer (not (null-pointer-p pointer))) 
-      (foreign-funcall "ecore_timer_del" 
-		       :pointer pointer
-		       :void)
+    (when pointer
+      (ffi-ecore-timer-del pointer)
       (setf pointer nil))))
 
 (defmethod timer-delay ((etimer etimer) delay)
-  (foreign-funcall "ecore_timer_delay" 
-		   :pointer (ecore-pointer etimer) 
-		   :double (coerce delay 'double-float)
-		   :void))
-
-
+  (ffi-ecore-timer-delay (ecore-pointer etimer) (coerce delay 'double-float)))
 
 (defmethod initialize-instance :after ((etimer etimer) &key)
   (with-slots ((pointer pointer)
 	       (timeout timeout)
-	       (job job)
+	       (data-pointer data-pointer)
 	       (loop-p loop-p))
-      etimer
-    (flet ((timer-add (timeout timeout-relative-p job)
-	     (let ((cb (def-task-callback job etimer)))
-	       (if timeout-relative-p
-		   (foreign-funcall "ecore_timer_loop_add"	     
-				    :double (coerce timeout 'double-float) 
-				    :pointer (get-callback cb)
-				    :pointer (null-pointer)
-				    :pointer)
-		   (foreign-funcall "ecore_timer_add"	     
-				    :double (coerce timeout 'double-float) 
-				    :pointer (get-callback cb)
-				    :pointer (null-pointer)
-				    :pointer)))))
-      (setf pointer
-	    (timer-add timeout loop-p job)))))
+      etimer    
+    (setf pointer
+	  (apply (if loop-p
+		     #'ffi-ecore-timer-loop-add
+		     #'ffi-ecore-timer-add)
+		 (list (coerce timeout 'double-float)
+		       (callback task-callback)
+		       data-pointer)))))
 
-(defmacro make-etimer (job &key (timeout 1) loop-p)
+(defun make-etimer (job &key (timeout 1) loop-p)
   "Creates a timer to call the given function in the given period of time.
 
 - JOB A callback function. To stop the timer signal a LAST-ITERATION condition or call ECORE-DEL. 
 - TIMEOUT timeout in seconds.
 - LOOP-P when true, the next timeout is relative to the end of the current timer- BODY what will be called on timeout
 
-Returns a ETIMER instance"
-  
-  (let ((g-timeout (gensym))
-	(g-loop-p (gensym))
-	(g-job (gensym)))
-    `(let ((,g-timeout ,timeout)
-	   (,g-loop-p ,loop-p)
-	   (,g-job ,job)) 
-       (make-instance 'etimer
-		      :timeout ,g-timeout
-		      :loop-p ,g-loop-p
-		      :job ,g-job))))
+Returns a ETIMER instance"   
+  (make-instance 'etimer
+		 :timeout timeout
+		 :loop-p loop-p
+		 :object-cb job))
 

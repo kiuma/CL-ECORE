@@ -30,12 +30,18 @@
 (in-package #:cl-user)
 
 (defpackage #:ecore-con
-  (:use :cl :cffi :ecore)
+  (:use :cl :cffi :ecore :ecore.sys)
   (:documentation "Ecore binding for CL - Connections")
   (:export #:ecore-con-init
 	   #:ecore-con-shutown
 	   #:con-lookup
-	   #:*lookup-info*
+	   #:canon-name
+	   #:ip
+	   #:address-family
+	   #:port
+	   #:address
+	   #:flow-info
+	   #:scope-id
 ))
 
 (in-package #:ecore-con)
