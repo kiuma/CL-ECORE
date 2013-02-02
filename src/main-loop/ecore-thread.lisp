@@ -120,13 +120,13 @@
 			       :on-notify on-notify)))
     (if (< *running-threads* *max-running-threads*)
 	(thread-run thread)
-	(arnesi:enqueue *thread-queue* thread))))
+	(push-queue *thread-queue* thread))))
 
 (defun dequeue-threads ()
   (loop 
-    while (and (not (arnesi:queue-empty-p *thread-queue*))
+    while (and (> (queue-size *thread-queue*) 0)
 	       (< *running-threads* *max-running-threads*))
-    do (thread-run (arnesi:dequeue *thread-queue*))))
+    do (thread-run (pop-queue *thread-queue*))))
 
 (defmethod ecore-del :after ((thread ecore-thread))
   (with-slots ((pipe pipe)
@@ -136,12 +136,12 @@
     (when (not running-p)
       (if job
 	  (mapcar #'ecore-del (list pipe job))
-	  (let ((new-queue (make-instance 'arnesi:queue)))
+	  (let ((new-queue (make-queue)))
 	    (loop
-	      while (not (arnesi:queue-empty-p *thread-queue*))
-	      do (let ((q-thread (arnesi:dequeue *thread-queue*)))
+	      while (> (queue-size *thread-queue*) 0)
+	      do (let ((q-thread (pop-queue *thread-queue*)))
 		   (when (not (eq thread q-thread))
-		     (arnesi:enqueue new-queue q-thread))))
+		     (push-queue new-queue q-thread))))
 	    (setf *thread-queue* new-queue)))
       thread)))
 
@@ -161,4 +161,4 @@
   *running-threads*)
 
 (defun ecore-pending-threads ()
-  (arnesi:queue-count *thread-queue*))
+  (queue-size *thread-queue*))

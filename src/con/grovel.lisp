@@ -29,9 +29,14 @@
 
 (in-package #:ecore-con)
 
+;(cc-flags "-I/usr/include/eina-1")
+
 (include 
  "sys/socket.h" 
- "netinet/in.h")
+ "netinet/in.h"
+ ;"eina_config.h"
+ ;"eina/eina_list.h"
+ )
 
 (ctype sa-family-t "sa_family_t")
 
@@ -69,3 +74,52 @@
   (flowinfo "sin6_flowinfo" :type :uint32)
   (addr     "sin6_addr"     :type in6-addr)
   (scope-id "sin6_scope_id" :type :uint32))
+
+(constant (con-event-client-add "ecore_con_event_client_add") 
+	  :type integer
+	  :documentation "A client has connected to the server.")
+(constant (con-event-client-del "ecore_con_event_client_del") 
+	  :type integer
+	  :documentation "A client has disconnected from the server.")
+(constant (con-event-client-error "ecore_con_event_client_error") 
+	  :type integer
+	  :documentation "A client experienced an error.")
+(constant (con-event-client-upgrade "ecore_con_event_client_upgrade") 
+	  :type integer
+	  :documentation "A client connection has been upgraded to SSL.")
+
+(constant (con-event-server-add "ecore_con_event_server_add") 
+	  :type integer
+	  :documentation "A server was created.")
+(constant (con-event-server-del "ecore_con_event_server_del") 
+	  :type integer
+	  :documentation "A server connection was lost. ")
+(constant (con-event-server-error "ecore_con_event_server_error") 
+	  :type integer
+	  :documentation "A server experienced an error.")
+(constant (con-event-server-upgrade "ecore_con_event_server_upgrade") 
+	  :type integer
+	  :documentation "A server connection has been upgraded to SSL.")
+
+(constant (con-event-client-data "ecore_con_client_data")
+	  :type integer
+	  :documentation "A client connected to the server has sent data.")
+(constant (con-event-server-data "ecore_con_server_data")
+	  :type integer
+	  :documentation "A server connection object has data.")
+
+(constant (con-event-proxy-bind "ecore_con_event_proxy_bind")
+	  :type integer
+	  :documentation "A server connection has successfully negotiated an ip:port binding.")
+
+(contant (con-event-url-data "ecore_con_event_url_data")
+	 :type integer
+	 :documentation "A URL object has data.")
+
+(constant (con-event-url-complete "ecore_con_event_url_complete")
+	  :type integer
+	  :documentation "A URL object has completed its transfer to and from the server and can be reused.")
+
+(constant (con-event-url-progress "ecore_con_event_url_progress")
+	  :type integer
+	  :documentation "A URL object has made progress in its transfer.")

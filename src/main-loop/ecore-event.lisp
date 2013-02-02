@@ -53,15 +53,14 @@
     (ecore-del *ecore-object*)))
 
 (defmethod initialize-instance :after ((event ecore-event) &key)
-  (with-slots ((pointer pointer)
-	       (data-pointer data-pointer)
+  (with-slots ((data-pointer data-pointer)
 	       (event-name event-name))
       event
-    (setf pointer (ffi-ecore-event-add
-		   (event-type event-name)
-		   data-pointer
-		   (callback event-end-callback)
-		   (null-pointer)))))
+    (setf (ecore-pointer event) (ffi-ecore-event-add
+				 (event-type event-name)
+				 data-pointer
+				 (callback event-end-callback)
+				 (null-pointer)))))
 
 
 (defcallback event-handler-callback :int
@@ -86,14 +85,13 @@
     continue))
 
 (defmethod initialize-instance :after ((handler event-handler) &key)
-  (with-slots ((pointer pointer)
-	       (event-name event-name)
+  (with-slots ((event-name event-name)
 	       (data-pointer data-pointer))
       handler    
-    (setf pointer (ffi-ecore-event-handler-add 
-		   (event-type event-name)
-		   (callback event-handler-callback)
-		   data-pointer))))
+    (setf (ecore-pointer handler) (ffi-ecore-event-handler-add 
+				   (event-type event-name)
+				   (callback event-handler-callback)
+				   data-pointer))))
 
 (defun make-event-handler (event cb)
   "Creates an event handler that will havle the event with the given callback.
@@ -111,10 +109,10 @@ the current event handler given by *ECORE-OBJECT* variable"
       (ffi-ecore-event-handler-del pointer)
       (setf pointer nil))))
 
-(defun defevent (event-name)
+(defun defevent (event-name &optional value)
   (unless (gethash event-name *event-types*)
 	 (setf (gethash event-name *event-types*) 
-	       (ffi-ecore-event-type-new))))
+	       (or value (ffi-ecore-event-type-new)))))
 
 (defmethod event-type ((event ecore-event))
   (event-type (event-name event)))
@@ -165,14 +163,13 @@ the current event handler given by *ECORE-OBJECT* variable"
 	  continue)))))
 
 (defmethod initialize-instance :after ((filter event-filter) &key)
-  (with-slots ((pointer pointer)
-	       (data-pointer data-pointer))
+  (with-slots ((data-pointer data-pointer))
       filter
-    (setf pointer (ffi-ecore-event-filter-add
-		   (null-pointer)		     
-		   (callback filter-callback)
-		   (null-pointer)
-		   data-pointer))))
+    (setf (ecore-pointer filter) (ffi-ecore-event-filter-add
+				  (null-pointer)		     
+				  (callback filter-callback)
+				  (null-pointer)
+				  data-pointer))))
 
 (defun make-event-filter (filter-cb)
   "Add a filter the current event queue.

@@ -36,21 +36,19 @@
 (defcallback job-callback :int
     ((data :pointer))
   (let* ((*ecore-object* (ecore-object-from-data-pointer data)))
-    (with-slots ((pointer pointer)
-		 (object-cb object-cb))
+    (with-slots ((object-cb object-cb))
 	*ecore-object*
-      (setf pointer nil)
+      (setf (ecore-pointer *ecore-object*) nil)
       (when object-cb
 	(funcall object-cb)))
     (ecore-del *ecore-object*))
   0)
 
 (defmethod initialize-instance :after ((ecore-job ecore-job) &key)
-  (with-slots ((pointer pointer)
-	       (data-pointer data-pointer))
+  (with-slots ((data-pointer data-pointer))
       ecore-job
-    (setf pointer (ffi-ecore-job-add (callback job-callback)
-				     data-pointer))))
+    (setf (ecore-pointer ecore-job) (ffi-ecore-job-add (callback job-callback)
+						       data-pointer))))
 
 
 (defun make-job (job)

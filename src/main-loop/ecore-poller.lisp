@@ -46,13 +46,12 @@
   :poller-type-core)
 
 (defmethod initialize-instance :after ((poller epoller) &key (interval 1))
-  (with-slots ((pointer pointer)
-	       (data-pointer data-pointer))
+  (with-slots ((data-pointer data-pointer))
       poller
-    (setf pointer (ffi-ecore-poller-add :poller-type-core
-					interval
-					(callback task-callback)
-					data-pointer))))
+    (setf (ecore-pointer poller) (ffi-ecore-poller-add :poller-type-core
+						       interval
+						       (callback task-callback)
+						       data-pointer))))
 
 
 (defun make-poller (job &key (interval 1))

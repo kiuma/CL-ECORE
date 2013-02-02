@@ -40,7 +40,8 @@
 			      :components ((:file "packages")
 					   (cffi-grovel:grovel-file "grovel" :depends-on ("packages"))
 					   (:file "ffi" :depends-on ("grovel"))
-					   (:file "ecore-con" :depends-on ("packages" "ffi"))))))))
+					   (:file "ecore-con" :depends-on ("packages" "ffi"))
+					   (:file "ecore-con-server" :depends-on ("packages" "ffi"))))))))
 
 
 (defmethod asdf:perform ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore-con))))

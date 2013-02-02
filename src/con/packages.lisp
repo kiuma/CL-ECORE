@@ -42,6 +42,14 @@
 	   #:address
 	   #:flow-info
 	   #:scope-id
+	   ;; server 
+	   #:make-con-server
+	   #:con-server-port
+	   #:con-server-address
+	   #:con-server-type
+	   #:con-server-ssl3-p
+	   #:con-server-tls-p
+	   #:con-server-timeout
 ))
 
 (in-package #:ecore-con)

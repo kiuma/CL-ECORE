@@ -47,6 +47,61 @@
 (defvar *system-events* '(:NULL :USER :HUP :EXIT :POWER :REALTIME))
 (defvar *event-types* nil)
 
+(defgeneric queue-size (queue))
+(defgeneric push-queue (queue item))
+(defgeneric pop-queue (queue))
+(defgeneric queue-as-list (queue))
+(defgeneric list-as-queue (items))
+
+(defclass queue ()
+  ((head :initform nil)
+   (tail :initform nil)
+   (size :initform 0 :reader queue-size)))
+
+(defclass queue-item ()
+  ((value :initarg :value)
+   (next :initform nil)))
+
+(defun make-queue ()
+  (make-instance 'queue))
+
+(defmethod push-queue ((q queue) item)
+  (with-slots ((head head)
+	       (tail tail)
+	       (size size))
+      q
+    (let ((queue-item (make-instance 'queue-item
+				     :value item)))
+      (when tail
+	(setf (slot-value tail 'next) queue-item))
+      (setf tail queue-item)
+      (unless head
+	(setf head queue-item))
+      (incf size))))
+
+(defmethod pop-queue ((q queue))
+  (with-slots ((head head)
+	       (tail tail)
+	       (size size))
+      q
+    (when head
+      (decf head)
+      (let ((result (slot-value head 'value))
+	    (new-head (slot-value head 'next)))
+	(setf head new-head)
+	result))))
+
+(defmethod queue-as-list ((q queue))
+  (loop for item = (pop-queue q) then (pop-queue q)
+	while (> (queue-size q) 0)
+	collect item))
+
+(defmethod list-as-queue ((items list))
+  (let ((queue (make-queue)))
+    (mapcar (lambda (item) (push-queue queue item)) items)
+    queue))
+
+
 (defun init-event-types ()  
   (setf *event-types* (make-hash-table :test 'equal))
   (loop for ev in ecore::*system-events*
@@ -54,7 +109,8 @@
 	do (setf (gethash ev *event-types*) i)))
 
 (defvar *ecore-objects* (make-hash-table))
-(defvar *thread-queue* (make-instance 'arnesi:queue))
+
+(defvar *thread-queue* (make-queue))
 
 (defvar *ecore-object* nil
   "Varibale used to get the current Ecore object when inside a timer callback")
@@ -86,8 +142,12 @@ Making this number to high may have a drastic negative impact.")
 
 - For an EVENT-HANDLER callback, it will cease processing handlers for that particular event, so all handler set to handle that event type that have not already been called, will not be."))
 
+(defgeneric ecore-pointer (ecore)
+  (:documentation "When not null returns an Ecore_* pointer, it signals a ECORE-ERROR otherwise." ))
+(defgeneric (setf ecore-pointer) (pointer ecore))
+
 (defclass ecore ()
-  ((pointer :initarg :pointer :reader ecore-pointer)
+  ((pointer :initarg :pointer)
    (do-not-hash-p :initarg :do-not-hash)
    (data-pointer :initarg :data-pointer :reader ecore-data-pointer)
    (object-cb :initarg :object-cb :accessor object-cb)
@@ -96,19 +156,21 @@ Making this number to high may have a drastic negative impact.")
 
 (defclass ecore-invalid () ())
 
+(defmethod ecore-pointer ((ecore ecore))
+  (or (slot-value ecore 'pointer) (signal 'ecore-error :message "Invalid ecore pointer")))
+
+(defmethod (setf ecore-pointer) (pointer (ecore ecore))
+  (setf (slot-value ecore 'pointer) pointer
+	;(gethash pointer *ecore-pointer-objects*) ecore
+	))
+
 (defmethod initialize-instance :after ((ecore ecore) &key)
   (with-slots ((do-not-hash-p do-not-hash-p)
 	       (data-pointer data-pointer))
       ecore    
     (unless do-not-hash-p
-      (setf data-pointer (foreign-alloc :char))
-      (setf (gethash (cffi-sys:pointer-address data-pointer) *ecore-objects*) ecore))))
-
-(defgeneric ecore-pointer (ecore)
-  (:documentation "When not null returns an Ecore_* pointer, it signals a ECORE-ERROR otherwise." ))
-
-(defmethod ecore-pointer ((ecore ecore))
-  (or (slot-value ecore 'pointer) (signal 'ecore-error :message "Invalid ecore pointer")))
+      (setf data-pointer (foreign-alloc :pointer :initial-element (null-pointer))
+	    (gethash (cffi-sys:pointer-address data-pointer) *ecore-objects*) ecore))))
 
 (defgeneric ecore-del (ecore)
   (:documentation "Removes an ecore object from the ecore main loop"))
@@ -118,7 +180,8 @@ Making this number to high may have a drastic negative impact.")
 
 (defmethod ecore-del ((ecore ecore))
   (with-slots ((do-not-hash-p do-not-hash-p)
-	       (data-pointer data-pointer))
+	       (data-pointer data-pointer)
+	       (pointer pointer))
       ecore
     (when (and data-pointer (not (null-pointer-p data-pointer)))
       (remhash (cffi-sys:pointer-address data-pointer) *ecore-objects*)
@@ -131,7 +194,7 @@ Making this number to high may have a drastic negative impact.")
 
 (defun ecore-init () 
   (setf *ecore-objects* (make-hash-table)
-	*thread-queue* (make-instance 'arnesi:queue))
+	*thread-queue* (make-queue))
   (init-event-types)
   (ffi-ecore-init))
 

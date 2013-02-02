@@ -8,7 +8,7 @@
 ;;; are met:
 
 ;;;   * Redistributions of source code must retain the above copyright
-;;;     notice, this list of conditions and the following disclaimer.
+;;;     notice, this list of conditions and the followingc disclaimer.
 
 ;;;   * Redistributions in binary form must reproduce the above
 ;;;     copyright notice, this list of conditions and the following

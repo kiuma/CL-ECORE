@@ -38,3 +38,39 @@
   (name :string)
   (cb :pointer)
   (data :pointer))
+
+(defcenum :ecore-con-type
+  :con-local-user
+  :con-local-system
+  :con-local-abstract
+  :con-remote-tcp
+  :con-remote-mcast
+  :con-remote-udp
+  :con-remote-boradcast
+  :con-remote-nodelay
+  :con-remote-crok)
+
+(defcenum :ecore-con-use
+  (:con-use-ssl3 32)
+  (:con-use-tls 64)
+  (:con-use-mixed 96)
+  (:con-load-cert 128)
+  (:con-no-proxy 256))
+
+(defcfun ("ecore_con_server_add" ffi-ecore-con-server-add) :pointer
+  (con-type :int)
+  (server :string)
+  (data :pointer))
+
+(defcfun ("ecore_con_server_del" ffi-ecore-con-server-del) :pointer
+  (server :pointer))
+
+(defcfun ("ecore_con_server_timeout_set" ffi-con-server-timeout-set) :void
+  (server :pointer)
+  (timeout :double))
+
+(defcfun ("ecore_con_server_timeout_get" ffi-con-server-timeout-get) :double
+  (server :pointer))
+
+(defcfun ("ecore_con_server_clients_get" ffi-con-server-clients-get) :pointer
+  (server :pointer))

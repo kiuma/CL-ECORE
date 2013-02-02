@@ -74,10 +74,9 @@ RETURNS: The number of message catched during that wait call."))
 	(funcall object-cb)))))
 
 (defmethod initialize-instance :after ((pipe ecore-pipe) &key)
-  (with-slots ((pointer pointer)
-	       (data-pointer data-pointer))
+  (with-slots ((data-pointer data-pointer))
       pipe
-    (setf pointer (ffi-ecore-pipe-add (callback pipe-callback) data-pointer))))
+    (setf (ecore-pointer pipe) (ffi-ecore-pipe-add (callback pipe-callback) data-pointer))))
 
 (defun make-pipe (pipe-cb &optional (buffer-size *ecore-buffer-size*))
   "Create two file descriptors (sockets on Windows).

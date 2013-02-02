@@ -212,3 +212,16 @@
   (fd-handler :pointer)
   (flags :int))
 
+;; ---------------------- EINA -----------------------------------
+#|
+(defcstruct eina-list 
+  "Type for a generic double linked list."
+  (data :pointer)
+  (next :pointer)
+  (prev :pointer)
+  (accounting :pointer))
+
+(defcfun ("eina_list_next" ffi-eina-list-next) :pointer
+  (eina-list :pointer))
+|#
+

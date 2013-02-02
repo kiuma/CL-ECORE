@@ -32,7 +32,9 @@
 (defpackage #:ecore.sys
   (:use :cl :cffi)
   (:export #:add-ecore-init-function
-	   #:add-ecore-shutdown-function))
+	   #:add-ecore-shutdown-function
+	   ;#:from-eina-list
+	   ))
 
 (defpackage #:ecore
   (:use :cl :cffi)
@@ -51,6 +53,7 @@
 	   #:ecore-del
 	   #:*ecore-object*
 	   #:ecore-object-from-data-pointer
+	   #:ecore-object-from-ecore-pointer
 	   ;; timer ----
 	   #:etimer
 	   #:timer-interval

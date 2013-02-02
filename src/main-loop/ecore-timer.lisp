@@ -127,12 +127,11 @@ Example: We have 2 timers, one that expires in a 2.0s and another that expires i
   (ffi-ecore-timer-delay (ecore-pointer etimer) (coerce delay 'double-float)))
 
 (defmethod initialize-instance :after ((etimer etimer) &key)
-  (with-slots ((pointer pointer)
-	       (timeout timeout)
+  (with-slots ((timeout timeout)
 	       (data-pointer data-pointer)
 	       (loop-p loop-p))
       etimer    
-    (setf pointer
+    (setf (ecore-pointer etimer)
 	  (apply (if loop-p
 		     #'ffi-ecore-timer-loop-add
 		     #'ffi-ecore-timer-add)

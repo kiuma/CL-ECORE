@@ -99,16 +99,15 @@ KEYS - A list that may contain any of the following values :FD-READ :FD-WRITE :F
 (defmethod initialize-instance :after ((handler ecore-fd-handler) &key)
   (with-slots ((fd fd)
 	       (flags flags)
-	       (pointer pointer)
 	       (data-pointer data-pointer))
       handler
-    (setf pointer (ffi-ecore-main-fd-handler-add 
-		   fd
-		   flags
-		   (callback fd-handler-callback)
-		   data-pointer
-		   (null-pointer)
-		   (null-pointer)))))
+    (setf (ecore-pointer handler) (ffi-ecore-main-fd-handler-add 
+				   fd
+				   flags
+				   (callback fd-handler-callback)
+				   data-pointer
+				   (null-pointer)
+				   (null-pointer)))))
 
 
 (defun make-fd-handler (file-descriptor fd-handler-cb fd-keys)

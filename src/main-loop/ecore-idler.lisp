@@ -35,15 +35,14 @@
   (:default-initargs :type :enterer))
 
 (defmethod initialize-instance :after ((idler idler) &key)
-  (with-slots ((pointer pointer)
-	       (data-pointer data-pointer)
+  (with-slots ((data-pointer data-pointer)
 	       (type type))
       idler
-    (setf pointer (apply (case type
-			   (:enterer #'ffi-ecore-idle-enterer-add)
-			   (:exiter #'ffi-ecore-idle-exiter-add)
-			   (t #'ffi-ecore-idler-add))
-			 (list (callback task-callback) data-pointer)))))
+    (setf (ecore-pointer idler) (apply (case type
+					 (:enterer #'ffi-ecore-idle-enterer-add)
+					 (:exiter #'ffi-ecore-idle-exiter-add)
+					 (t #'ffi-ecore-idler-add))
+				       (list (callback task-callback) data-pointer)))))
 
 
 (defun make-idler (job &key (idler-type :enterer))

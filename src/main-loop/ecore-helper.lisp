@@ -58,3 +58,13 @@
 (defmacro in-ecore-loop (&body body)
   `(%in-ecore-loop% (lambda () ,@body)))
 
+
+;; ======================== EINA ======================================== ;;
+#|
+(in-package :ecore.sys)
+
+(defun from-eina-list (eina-list transform)
+  (loop for item = eina-list then (ecore::ffi-eina-list-next eina-list)
+	while (not (null-pointer-p item))
+	collect (funcall transform (foreign-slot-value item 'ecore::eina-list 'ecore::data))))
+|#
