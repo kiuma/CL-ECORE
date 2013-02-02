@@ -85,7 +85,7 @@
 	       (size size))
       q
     (when head
-      (decf head)
+      (decf size)
       (let ((result (slot-value head 'value))
 	    (new-head (slot-value head 'next)))
 	(setf head new-head)
@@ -106,9 +106,11 @@
   (setf *event-types* (make-hash-table :test 'equal))
   (loop for ev in ecore::*system-events*
 	for i = 0 then (incf i)
-	do (setf (gethash ev *event-types*) i)))
+	do (setf (gethash ev *event-types*) i
+		 (gethash i *event-types*) ev)))
 
 (defvar *ecore-objects* (make-hash-table))
+(defvar *short-life-ecore-objects* (make-queue))
 
 (defvar *thread-queue* (make-queue))
 
@@ -142,35 +144,53 @@ Making this number to high may have a drastic negative impact.")
 
 - For an EVENT-HANDLER callback, it will cease processing handlers for that particular event, so all handler set to handle that event type that have not already been called, will not be."))
 
-(defgeneric ecore-pointer (ecore)
+(defgeneric ecore-pointer (ecore &optional error-if-null-p)
   (:documentation "When not null returns an Ecore_* pointer, it signals a ECORE-ERROR otherwise." ))
 (defgeneric (setf ecore-pointer) (pointer ecore))
 
 (defclass ecore ()
   ((pointer :initarg :pointer)
-   (do-not-hash-p :initarg :do-not-hash)
+   (free-data-pointer-p :initarg :free-data-pointer-p)
    (data-pointer :initarg :data-pointer :reader ecore-data-pointer)
    (object-cb :initarg :object-cb :accessor object-cb)
-   (data :initarg :data))
-  (:default-initargs :pointer nil :data nil :data-pointer nil :do-not-hash nil :object-cb nil))
+   (data :initarg :data)
+   (short-life-p :initarg :short-life-p))
+  (:default-initargs :pointer nil 
+		     :data nil 
+		     :data-pointer nil
+		     :free-data-pointer-p t		    
+		     :object-cb nil
+		     :short-life-p nil))
 
 (defclass ecore-invalid () ())
 
-(defmethod ecore-pointer ((ecore ecore))
-  (or (slot-value ecore 'pointer) (signal 'ecore-error :message "Invalid ecore pointer")))
+(defmethod ecore-pointer ((ecore ecore) &optional (error-if-null-p t))
+  (or (slot-value ecore 'pointer) (and error-if-null-p 
+				       (signal 'ecore-error :message "Invalid ecore pointer"))))
 
 (defmethod (setf ecore-pointer) (pointer (ecore ecore))
   (setf (slot-value ecore 'pointer) pointer
 	;(gethash pointer *ecore-pointer-objects*) ecore
 	))
 
+(defgeneric do-hash-ecore-object (ecore pointer))
+
+(defmethod do-hash-ecore-object ((ecore ecore) pointer)
+  (setf (gethash (cffi-sys:pointer-address pointer) *ecore-objects*)
+	ecore))
+
 (defmethod initialize-instance :after ((ecore ecore) &key)
-  (with-slots ((do-not-hash-p do-not-hash-p)
-	       (data-pointer data-pointer))
+  (with-slots ((free-ecore-pointer-p free-ecore-pointer-p)
+	       (data-pointer data-pointer)
+	       (short-life-p short-life-p))
       ecore    
-    (unless do-not-hash-p
-      (setf data-pointer (foreign-alloc :pointer :initial-element (null-pointer))
-	    (gethash (cffi-sys:pointer-address data-pointer) *ecore-objects*) ecore))))
+    (if data-pointer
+	(setf free-ecore-pointer-p nil)
+	(setf data-pointer (foreign-alloc :pointer 
+					  :initial-element (null-pointer))))
+    (do-hash-ecore-object ecore data-pointer)
+    (when short-life-p
+      (push-queue *short-life-ecore-objects* ecore))))
 
 (defgeneric ecore-del (ecore)
   (:documentation "Removes an ecore object from the ecore main loop"))
@@ -179,13 +199,14 @@ Making this number to high may have a drastic negative impact.")
   (declare (ignore may-be-null)))
 
 (defmethod ecore-del ((ecore ecore))
-  (with-slots ((do-not-hash-p do-not-hash-p)
+  (with-slots ((free-data-pointer-p free-data-pointer-p)
 	       (data-pointer data-pointer)
 	       (pointer pointer))
       ecore
     (when (and data-pointer (not (null-pointer-p data-pointer)))
       (remhash (cffi-sys:pointer-address data-pointer) *ecore-objects*)
-      (foreign-free data-pointer))
+      (when free-data-pointer-p
+	(foreign-free data-pointer)))
     (setf data-pointer nil)))
 
 
@@ -194,6 +215,7 @@ Making this number to high may have a drastic negative impact.")
 
 (defun ecore-init () 
   (setf *ecore-objects* (make-hash-table)
+	*short-life-ecore-objects* (make-queue)
 	*thread-queue* (make-queue))
   (init-event-types)
   (ffi-ecore-init))

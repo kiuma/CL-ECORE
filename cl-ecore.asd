@@ -45,7 +45,7 @@
 					   (:file "ecore-pipe" :depends-on ("ecore"))
 					   (:file "ecore-thread" :depends-on ("ecore" "ecore-job" "ecore-pipe"))
 					   (:file "ecore-fd" :depends-on ("ecore"))
-					   (:file "ecore-helper" :depends-on ("ecore" "ecore-event"))))))))
+					   (:file "ecore-helper" :depends-on ("ecore" "ecore-event" "ecore-idler"))))))))
 
 
 (defmethod asdf:perform ((op asdf:test-op) (sys (eql (asdf:find-system :cl-ecore))))

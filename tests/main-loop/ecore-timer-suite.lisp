@@ -42,7 +42,7 @@
 		     (ecore-loop-quit)))
 		 :timeout 0.1))
 	(is (=  9 x))
-	(is (> 1.1 (elapsed start)))))
+	(is (> 0.1 (elapsed start)))))
 
 (test (slow-down-timer :compile-at :definition-time)
   (flet ((delay (tmr seconds)

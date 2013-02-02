@@ -70,6 +70,7 @@
 	   #:make-event-handler
 	   #:ecore-event
 	   #:event-type
+	   #:event-name
 	   #:make-event
 	   #:make-event-filter
 	   ;;poller ----

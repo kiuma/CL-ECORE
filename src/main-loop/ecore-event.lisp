@@ -29,9 +29,13 @@
 
 (in-package :ecore)
 
+(defgeneric event-type (event-or-symbol))
+
+(defgeneric event-name (event))
 
 (defclass ecore-event (ecore)
-  ((event-name :reader event-name :initarg :event-name)))
+  ((event-type :initarg :event-type))
+  (:default-initargs :short-life-p nil))
 
 (defclass event-handler (ecore)
   ((event-name :reader event-name :initarg :event-name)
@@ -54,13 +58,14 @@
 
 (defmethod initialize-instance :after ((event ecore-event) &key)
   (with-slots ((data-pointer data-pointer)
-	       (event-name event-name))
-      event
-    (setf (ecore-pointer event) (ffi-ecore-event-add
-				 (event-type event-name)
-				 data-pointer
-				 (callback event-end-callback)
-				 (null-pointer)))))
+	       (event-type event-type))
+      event    
+    (unless (ecore-pointer event nil)      
+      (setf (ecore-pointer event) (ffi-ecore-event-add
+				   event-type
+				   data-pointer
+				   (callback event-end-callback)
+				   (null-pointer))))))
 
 
 (defcallback event-handler-callback :int
@@ -110,22 +115,41 @@ the current event handler given by *ECORE-OBJECT* variable"
       (setf pointer nil))))
 
 (defun defevent (event-name &optional value)
-  (unless (gethash event-name *event-types*)
-	 (setf (gethash event-name *event-types*) 
-	       (or value (ffi-ecore-event-type-new)))))
+  (let ((event-type (or value (ffi-ecore-event-type-new))))
+    (setf (gethash event-type *event-types*)
+	  event-name
+	  (gethash event-name *event-types*)
+	  event-type)))
 
 (defmethod event-type ((event ecore-event))
-  (event-type (event-name event)))
+  ;(event-type (event-name event))
+  (slot-value event 'event-type)
+  )
 
 (defmethod event-type ((event-name symbol))
   (or (gethash event-name *event-types*)
-      (error 'ecore-error :message (format nil "Undefined event ~a" event-name))))
+      (error 'ecore-error :message (format nil 
+					   "Undefined event ~s.~%Registerd events: \(~{~a~^, ~}\)~%" 
+					   event-name
+					   (loop for key being the hash-keys of *event-types*
+						 collect  key)))))
 
-(defun make-event (event-name &optional data end-cb)
+(defmethod event-name ((event ecore-event))
+  (gethash (event-type event) *event-types*))
+
+(defun make-event (event-name &optional data end-cb) 
   (make-instance 'ecore-event
-		 :event-name event-name
+		 :event-type (event-type event-name)
 		 :object-cb end-cb
 		 :data data))
+
+(defun make-system-event (event-pointer type)
+  (or (ecore-object-from-data-pointer event-pointer)
+      (make-instance 'ecore-event
+		     :pointer event-pointer
+		     :data-pointer event-pointer
+		     :event-type type
+		     :shor-life-p t)))
 
 (defmethod ecore-del :after ((event ecore-event))
   (with-slots ((pointer pointer))
@@ -153,7 +177,9 @@ the current event handler given by *ECORE-OBJECT* variable"
 		   (object-cb object-cb))
 	  *ecore-object*
 	(setf event
-	      (ecore-object-from-data-pointer event-pointer)
+	      (or
+	       (ecore-object-from-data-pointer event-pointer)
+	       (make-system-event event-pointer type))
 	      event-type type)
 	(let ((continue 1))
 	  (handler-case

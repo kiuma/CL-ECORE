@@ -112,7 +112,7 @@
 	  :type integer
 	  :documentation "A server connection has successfully negotiated an ip:port binding.")
 
-(contant (con-event-url-data "ecore_con_event_url_data")
+(constant (con-event-url-data "ecore_con_event_url_data")
 	 :type integer
 	 :documentation "A URL object has data.")
 
