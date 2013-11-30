@@ -29,14 +29,14 @@
 
 (in-package #:ecore-con)
 
-;(cc-flags "-I/usr/include/eina-1")
+(cc-flags "-I/usr/include/ecore-1"
+	  "-I/usr/include/eina-1"
+	  "-I/usr/include/eina-1/eina")
 
 (include 
  "sys/socket.h" 
  "netinet/in.h"
- ;"eina_config.h"
- ;"eina/eina_list.h"
- )
+ "Ecore_Con.h")
 
 (ctype sa-family-t "sa_family_t")
 
@@ -75,51 +75,23 @@
   (addr     "sin6_addr"     :type in6-addr)
   (scope-id "sin6_scope_id" :type :uint32))
 
-(constant (con-event-client-add "ecore_con_event_client_add") 
-	  :type integer
-	  :documentation "A client has connected to the server.")
-(constant (con-event-client-del "ecore_con_event_client_del") 
-	  :type integer
-	  :documentation "A client has disconnected from the server.")
-(constant (con-event-client-error "ecore_con_event_client_error") 
-	  :type integer
-	  :documentation "A client experienced an error.")
-(constant (con-event-client-upgrade "ecore_con_event_client_upgrade") 
-	  :type integer
-	  :documentation "A client connection has been upgraded to SSL.")
+(cvar ("ECORE_CON_EVENT_CLIENT_ADD" con-event-client-add) :int)
+(cvar ("ECORE_CON_EVENT_CLIENT_DEL" con-event-client-del) :int)
+(cvar ("ECORE_CON_EVENT_CLIENT_ERROR" con-event-client-error) :int)
+(cvar ("ECORE_CON_EVENT_CLIENT_UPGRADE" con-event-client-upgrade) :int)
 
-(constant (con-event-server-add "ecore_con_event_server_add") 
-	  :type integer
-	  :documentation "A server was created.")
-(constant (con-event-server-del "ecore_con_event_server_del") 
-	  :type integer
-	  :documentation "A server connection was lost. ")
-(constant (con-event-server-error "ecore_con_event_server_error") 
-	  :type integer
-	  :documentation "A server experienced an error.")
-(constant (con-event-server-upgrade "ecore_con_event_server_upgrade") 
-	  :type integer
-	  :documentation "A server connection has been upgraded to SSL.")
+(cvar ("ECORE_CON_EVENT_SERVER_ADD" con-event-server-add) :int)
+(cvar ("ECORE_CON_EVENT_SERVER_DEL" con-event-server-del) :int)
+(cvar ("ECORE_CON_EVENT_SERVER_ERROR" con-event-server-error) :int)
+(cvar ("ECORE_CON_EVENT_SERVER_UPGRADE" con-event-server-upgrade) :int)
 
-(constant (con-event-client-data "ecore_con_client_data")
-	  :type integer
-	  :documentation "A client connected to the server has sent data.")
-(constant (con-event-server-data "ecore_con_server_data")
-	  :type integer
-	  :documentation "A server connection object has data.")
+(cvar ("ECORE_CON_EVENT_CLIENT_DATA" con-event-client-data) :int)
+(cvar ("ECORE_CON_EVENT_SERVER_DATA" con-event-server-data) :int)
 
-(constant (con-event-proxy-bind "ecore_con_event_proxy_bind")
-	  :type integer
-	  :documentation "A server connection has successfully negotiated an ip:port binding.")
+(cvar ("ECORE_CON_EVENT_PROXY_BIND" con-event-proxy-bind) :int)
 
-(constant (con-event-url-data "ecore_con_event_url_data")
-	 :type integer
-	 :documentation "A URL object has data.")
+(cvar ("ECORE_CON_EVENT_URL_DATA" con-event-url-data) :int)
 
-(constant (con-event-url-complete "ecore_con_event_url_complete")
-	  :type integer
-	  :documentation "A URL object has completed its transfer to and from the server and can be reused.")
+(cvar ("ECORE_CON_EVENT_URL_COMPLETE" con-event-url-complete) :int)
 
-(constant (con-event-url-progress "ecore_con_event_url_progress")
-	  :type integer
-	  :documentation "A URL object has made progress in its transfer.")
+(cvar ("ECORE_CON_EVENT_URL_PROGRESS" con-event-url-progress) :int)

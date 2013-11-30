@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
-;;; $Header: src/conn/package.lisp $
+;;; $Header: src/con/ecore-con-client.lisp $
 
 ;;; Copyright (c) 2012, Andrea Chiumenti.  All rights reserved.
 
@@ -27,20 +27,18 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(in-package #:cl-user)
-
-(defpackage #:ecore-con
-  (:use :cl :cffi :ecore :ecore.sys)
-  (:documentation "Ecore binding for CL - Connections")
-  
-  
-  )
-
 (in-package #:ecore-con)
 
-(define-foreign-library libecore-con
-  (:unix "libecore_con.so")
-  (t (:default "libecore_con")))
+(defclass con-client (ecore-con) 
+  ())
 
-(use-foreign-library libecore-con)
+(defmethod con-client-send (client buffer)
+  (:documentation ("Sends the given data to the given client")))
 
+(defmethod ecore-del :after ((client con-client))
+  (let ((pointer (ecore-pointer client)))   
+    (when pointer
+      (ffi-ecore-con-client-del pointer))))
+
+(defmethod con-client-send ((client con-client) buffer)
+  (ecore-con-send client buffer #'ffi-con-client-send))

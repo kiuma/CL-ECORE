@@ -48,7 +48,7 @@
 
 (defun %in-ecore-loop% (func)
   (ecore-init)
-  (mapcar #'funcall ecore.sys::*ecore-init-functions*)
+  ;;(mapcar #'funcall ecore.sys::*ecore-init-functions*)
   (make-idler (lambda ()
 		(loop for q = *short-life-ecore-objects*
 		      while (> (queue-size q) 0)
@@ -56,7 +56,7 @@
   (defevent *event-type-quit*)
   (funcall func)
   (main-loop-begin)
-  (mapcar #'funcall ecore.sys::*ecore-shutdown-functions*)
+  ;;(mapcar #'funcall ecore.sys::*ecore-shutdown-functions*)
   (ecore-shutdown))
 
 (defmacro in-ecore-loop (&body body)

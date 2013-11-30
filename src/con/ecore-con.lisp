@@ -29,7 +29,32 @@
 
 (in-package #:ecore-con)
 
+(defun con-init-events ()
+  (let ((evt-definitions 
+	  (list 'con-client-add con-event-client-add
+		'con-client-del con-event-client-del
+		'con-client-error con-event-client-error
+		'con-client-upgrade con-event-client-upgrade
 
+		'con-server-add con-event-server-add
+		'con-server-del con-event-server-del
+		'con-server-error con-event-server-error
+		'con-server-upgrade con-event-server-upgrade
+
+		'con-client-data con-event-client-data
+		'con-server-data con-event-server-data 
+
+		'con-proxy-bind con-event-proxy-bind
+
+		'con-url-data con-event-url-data
+		'con-url-complete con-event-url-complete
+		'con-url-progress con-event-url-progress)))
+    (loop for (sym var) on evt-definitions by #'cddr
+	  do (funcall #'defevent sym var))))
+
+(defun ecore-con-init () 
+  (ffi-ecore-con-init)
+  (con-init-events))
 
 (defclass lookup-info ()
   ((canon-name :initarg :canon-name :reader canon-name)
@@ -66,9 +91,6 @@ PORT: ~a
 ADDRESS: ~a
 FLOW-INFO: ~a
 SCOPE-ID: ~a>" (class-name (class-of info)) canon-name ip address-family port address flow-info scope-id)))
-
-(defun ecore-con-init () 
-  (ffi-ecore-con-init))
 
 (add-ecore-init-function #'ecore-con-init)
 

@@ -101,6 +101,9 @@
 	   ;;fd-handler
 	   #:fd-flags
 	   #:make-fd-handler
+	   ;;eina
+	   #:eina-list
+	   #:ffi-eina-list-next
 ))
 
 (in-package :ecore)
@@ -109,5 +112,9 @@
   (:unix "libecore.so")
   (t (:default "libecore")))
 
+(define-foreign-library libeina
+  (:unix "libeina.so")
+  (t (:default "libeina")))
 
-(use-foreign-library libecore)
+
+

@@ -29,6 +29,7 @@
 
 (in-package :ecore)
 
+(use-foreign-library libecore)
  
 (defcfun ("ecore_main_loop_begin" ffi-ecore-main-loop-begin) :void)
 
@@ -213,7 +214,8 @@
   (flags :int))
 
 ;; ---------------------- EINA -----------------------------------
-#|
+(use-foreign-library libeina)
+
 (defcstruct eina-list 
   "Type for a generic double linked list."
   (data :pointer)
@@ -223,5 +225,4 @@
 
 (defcfun ("eina_list_next" ffi-eina-list-next) :pointer
   (eina-list :pointer))
-|#
 

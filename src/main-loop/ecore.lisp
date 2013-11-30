@@ -120,7 +120,7 @@
 (defvar *ecore-buffer* nil
   "Varibale used to get datain pipe and socket callbacks")
 
-(defvar *ecore-buffer-size* 4096
+(defvar *ecore-buffer-size* 655536
   "Should be kept as a multiple of page size. 
 The default of 4096 is the system page size of a i386.
 Since Linux 2.6.11, the pipe maximum capacity is 65536 bytes")
@@ -218,11 +218,12 @@ Making this number to high may have a drastic negative impact.")
 	*short-life-ecore-objects* (make-queue)
 	*thread-queue* (make-queue))
   (init-event-types)
-  (ffi-ecore-init))
+  (ffi-ecore-init)
+  (mapcar #'funcall ecore.sys::*ecore-init-functions*))
 
 (defun ecore-shutdown ()
-  (unless ecore.sys::*ecore-shutdown-functions*
-    (ffi-ecore-shutdown)))
+  (mapcar #'funcall (reverse ecore.sys::*ecore-shutdown-functions*))
+  (ffi-ecore-shutdown))
 
 
 
